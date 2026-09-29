@@ -70,9 +70,12 @@ app.use('/api', apiLimiter);
 
 // Mount API Routes
 app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/auth', require('./routes/auth.routes')); // Serverless path fallback
 app.use('/api/profile', require('./routes/profile.routes'));
 app.use('/api/products', require('./routes/product.routes'));
+app.use('/products', require('./routes/product.routes')); // Serverless path fallback
 app.use('/api/categories', require('./routes/category.routes'));
+app.use('/categories', require('./routes/category.routes'));
 app.use('/api/orders', require('./routes/order.routes'));
 app.use('/api/reviews', require('./routes/review.routes'));
 app.use('/api/inventory', require('./routes/inventory.routes'));

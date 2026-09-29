@@ -12,7 +12,7 @@ const seedData = require('../backend/utils/seed');
 let isSeeded = false;
 
 module.exports = async (req, res) => {
-  // 1. Establish database connection
+  // 1. Establish database connection if not connected
   try {
     await connectDB();
     if (!isSeeded) {
@@ -31,10 +31,23 @@ module.exports = async (req, res) => {
     console.warn('[Drinko Vercel DB Notice]', dbErr.message);
   }
 
-  // 2. Normalize req.url so Express router matches /api/* endpoints
-  if (req.url && !req.url.startsWith('/api')) {
-    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  // 2. Extract and normalize incoming URL so Express router always matches /api/*
+  let requestPath = req.url || '/api';
+  if (req.headers && req.headers['x-forwarded-url']) {
+    try {
+      const parsed = new URL(req.headers['x-forwarded-url'], 'https://drinko.local');
+      requestPath = parsed.pathname;
+    } catch (e) {
+      requestPath = req.headers['x-forwarded-url'];
+    }
   }
+
+  const [pathname, search] = requestPath.split('?');
+  let normalizedPath = pathname;
+  if (!normalizedPath.startsWith('/api')) {
+    normalizedPath = '/api' + (normalizedPath.startsWith('/') ? normalizedPath : '/' + normalizedPath);
+  }
+  req.url = normalizedPath + (search ? `?${search}` : '');
 
   // 3. Delegate to Express app
   return app(req, res);
