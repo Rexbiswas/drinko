@@ -3,9 +3,21 @@
  * Manages HTTP requests, JWT token storage, error handling, and session state.
  */
 
-const API_BASE_URL = window.location.origin.startsWith('http')
-  ? `${window.location.origin}/api`
-  : 'http://localhost:5000/api';
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    if (window.DRINKO_API_URL) return window.DRINKO_API_URL.replace(/\/+$/, '');
+    try {
+      const stored = localStorage.getItem('drinko_api_url');
+      if (stored) return stored.replace(/\/+$/, '');
+    } catch (e) {}
+    if (window.location.origin.startsWith('http')) {
+      return `${window.location.origin}/api`;
+    }
+  }
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const DrinkoAPI = {
   // Token management

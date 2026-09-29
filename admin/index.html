@@ -6,7 +6,8 @@
     <title>Drinko Admin & Kitchen Command Center</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="../asset/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="/asset/favicon.svg">
+    <link rel="alternate icon" href="../asset/favicon.svg">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +17,8 @@
     <!-- FontAwesome 6.5.1 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
-    <!-- Admin Styling -->
+    <!-- Admin Styling: absolute path for Vercel/server routing + relative fallback -->
+    <link rel="stylesheet" href="/admin/admin.css">
     <link rel="stylesheet" href="admin.css">
 </head>
 <body>
@@ -123,7 +125,7 @@
                 <div class="topbar-actions">
                     <!-- Customer Storefront Control Group (Link + Enable/Disable Toggle) -->
                     <div class="storefront-ctrl-group">
-                        <a href="../index.html" class="topbar-btn" id="link-customer-front" target="_blank" title="View Customer Storefront">
+                        <a href="/" class="topbar-btn" id="link-customer-front" target="_blank" title="View Customer Storefront">
                             <i class="fa-solid fa-store"></i> Customer Front
                         </a>
                         <button class="topbar-toggle-btn active" id="btn-toggle-storefront" title="Click to Enable or Disable Customer Front">
@@ -462,7 +464,20 @@
 
     <!-- Scripts: Socket.io, API Client, and Admin Logic -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="../scripts/api.js"></script>
-    <script src="admin.js"></script>
+    <script src="/scripts/api.js"></script>
+    <script src="/admin/admin.js"></script>
+    <script>
+        // Automatic fallback for offline / relative execution
+        if (typeof DrinkoAPI === 'undefined') {
+            const apiScript = document.createElement('script');
+            apiScript.src = '../scripts/api.js';
+            document.body.appendChild(apiScript);
+        }
+        if (typeof initAdminApp === 'undefined') {
+            const adminScript = document.createElement('script');
+            adminScript.src = 'admin.js';
+            document.body.appendChild(adminScript);
+        }
+    </script>
 </body>
 </html>
