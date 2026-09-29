@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Drinko Customer Reviews - Over 12,000+ Verified Testimonials for Our Artisan Cold Brews, Matcha & Boba.">
+    <title>Customer Reviews | Drinko Artisan Beverages</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../asset/favicon.svg">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:wght@300;400;500;600;700;800&family=Tangerine:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6.5.1 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../style/style.css">
+    <link rel="stylesheet" href="../style/responsive.css">
+</head>
+<body>
+
+    <!-- Header / Glassmorphic Navigation -->
+    <header class="site-header" id="header">
+        <nav class="navbar container">
+            <a href="../index.html" class="nav-logo">
+                <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                <h1>drinko</h1>
+            </a>
+
+            <!-- Mobile Drawer Backdrop Overlay -->
+            <div class="nav-drawer-overlay" id="nav-drawer-overlay"></div>
+
+            <div class="nav-menu" id="nav-menu">
+                <div class="drawer-top-bar">
+                    <div class="drawer-logo">
+                        <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                        <h2>drinko</h2>
+                    </div>
+                    <button class="drawer-close-btn" id="nav-close-btn" aria-label="Close Menu">&times;</button>
+                </div>
+
+                <div class="nav-links">
+                    <a href="../index.html" class="nav-link">Home</a>
+                    <a href="menu.html" class="nav-link">Menu</a>
+                    <a href="delivery.html" class="nav-link">Delivery</a>
+                    <a href="reviews.html" class="nav-link active">Reviews</a>
+                    <a href="profile.html" class="nav-link">Profile</a>
+                </div>
+
+                <div class="nav-actions">
+                    <div class="action-icons">
+                        <button class="icon-btn heart-btn" id="favorites-toggle-btn" aria-label="View Wishlist">
+                            <i class="fa-regular fa-heart"></i>
+                            <span class="badge" id="fav-count">0</span>
+                        </button>
+                        
+                        <button class="icon-btn profile-btn" id="profile-btn" aria-label="User Profile">
+                            <i class="fa-regular fa-user"></i>
+                        </button>
+
+                        <button class="icon-btn cart-btn" id="cart-toggle-btn" aria-label="Shopping Cart">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span class="badge" id="cart-count">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Page Hero Banner -->
+        <section class="page-hero-banner">
+            <div class="hero-ambient-glow glow-2"></div>
+            <div class="hero-ambient-glow glow-3"></div>
+            <div class="container">
+                <div class="breadcrumbs">
+                    <a href="../index.html"><i class="fa-solid fa-house"></i> Home</a>
+                    <i class="fa-solid fa-chevron-right"></i>
+                    <span>Reviews</span>
+                </div>
+                <h1 class="page-title">Customer Stories & <span class="text-gradient">Verified Reviews</span></h1>
+                <p class="page-desc">Real reviews from our community of 12,000+ beverage connoisseurs. See why Drinko is rated 4.9/5 stars.</p>
+            </div>
+        </section>
+
+        <!-- Rating Stats & Interactive Review Form Section -->
+        <section class="container" style="padding-top: 1rem;">
+            <div class="reviews-dashboard">
+                <!-- Overview Stats Card -->
+                <div class="rating-overview-card glass-card">
+                    <span class="sub-title">Overall Community Rating</span>
+                    <div class="big-rating-number">
+                        4.9 <span>/ 5.0</span>
+                    </div>
+                    <div class="overview-stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <p style="font-size: 0.95rem; color: var(--text-sub); margin-bottom: 1.2rem;">
+                        <i class="fa-solid fa-badge-check" style="color: #10b981;"></i> <strong>98%</strong> of customers recommend Drinko to friends.
+                    </p>
+
+                    <!-- Rating Bars -->
+                    <div class="rating-bars">
+                        <div class="bar-row">
+                            <span>5 ★</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 88%;"></div></div>
+                            <span>88%</span>
+                        </div>
+                        <div class="bar-row">
+                            <span>4 ★</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 9%;"></div></div>
+                            <span>9%</span>
+                        </div>
+                        <div class="bar-row">
+                            <span>3 ★</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 2%;"></div></div>
+                            <span>2%</span>
+                        </div>
+                        <div class="bar-row">
+                            <span>2 ★</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 1%;"></div></div>
+                            <span>1%</span>
+                        </div>
+                        <div class="bar-row">
+                            <span>1 ★</span>
+                            <div class="bar-track"><div class="bar-fill" style="width: 0%;"></div></div>
+                            <span>0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Submit Review Card -->
+                <div class="review-form-card glass-card">
+                    <h3>Share Your Drinko Experience</h3>
+                    <p>Have you enjoyed a craft brew today? Leave your review and get entered into our monthly bean prize draw!</p>
+                    
+                    <form id="review-form">
+                        <div class="star-rating-select">
+                            <label>Your Rating:</label>
+                            <div class="star-picker" id="review-star-picker">
+                                <i class="fa-solid fa-star active" data-val="1"></i>
+                                <i class="fa-solid fa-star active" data-val="2"></i>
+                                <i class="fa-solid fa-star active" data-val="3"></i>
+                                <i class="fa-solid fa-star active" data-val="4"></i>
+                                <i class="fa-solid fa-star active" data-val="5"></i>
+                            </div>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label for="review-author">Your Name</label>
+                                <input type="text" id="review-author" class="form-control" placeholder="e.g. Alex Morgan" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="review-drink-select">Drink Enjoyed</label>
+                                <select id="review-drink-select" class="form-control">
+                                    <option value="Hazelnut Cold Brew">Hazelnut Cold Brew</option>
+                                    <option value="Matcha Cloud Latte">Matcha Cloud Latte</option>
+                                    <option value="Hibiscus Citrus Glow">Hibiscus Citrus Glow</option>
+                                    <option value="Brown Sugar Boba Milk">Brown Sugar Boba Milk</option>
+                                    <option value="Velvet Espresso Tonic">Velvet Espresso Tonic</option>
+                                    <option value="Wild Berry Acai Smoothie">Wild Berry Acai Smoothie</option>
+                                    <option value="Smoky Vanilla Caramel Latte">Smoky Vanilla Caramel Latte</option>
+                                    <option value="Peach Jasmine Ice Tea">Peach Jasmine Ice Tea</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="review-message">Your Thoughts</label>
+                            <textarea id="review-message" class="form-control" placeholder="Tell us how your drink tasted, packaging freshness, or courier delivery speed..." required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-glow" style="width: 100%;">
+                            <i class="fa-solid fa-paper-plane"></i> Publish My Review
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Filter Bar for Reviews -->
+            <div class="reviews-filter-bar">
+                <div class="reviews-filter-pills">
+                    <button class="review-filter-btn active" data-filter="all">All Reviews (6+)</button>
+                    <button class="review-filter-btn" data-filter="5-star">5-Star Only</button>
+                    <button class="review-filter-btn" data-filter="coffee">Coffee Brews</button>
+                    <button class="review-filter-btn" data-filter="tea">Teas & Matcha</button>
+                    <button class="review-filter-btn" data-filter="mocktail">Mocktails</button>
+                    <button class="review-filter-btn" data-filter="smoothie">Smoothies & Boba</button>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-shield-check"></i> 100% Verified Order Reviews
+                </div>
+            </div>
+
+            <!-- Reviews Grid -->
+            <div class="reviews-grid" id="reviews-grid">
+                <!-- Dynamically populated by setupReviewsPage() in script.js -->
+            </div>
+        </section>
+
+        <!-- CTA Banner -->
+        <section class="cta-banner-section container">
+            <div class="cta-banner-card glass-card">
+                <h2>Taste the Drinko Difference Today</h2>
+                <p>Use code <strong>DRINKO20</strong> during checkout to receive 20% off your first handcrafted drink.</p>
+                <div class="cta-banner-buttons">
+                    <a href="menu.html" class="btn btn-primary btn-glow">
+                        <i class="fa-solid fa-mug-hot"></i> Explore Our Menu
+                    </a>
+                    <a href="delivery.html" class="btn btn-secondary">
+                        <i class="fa-solid fa-bolt"></i> Check Express Delivery
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container footer-content">
+            <div class="footer-col brand-col">
+                <a href="../index.html" class="nav-logo">
+                    <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                    <h2>drinko</h2>
+                </a>
+                <p>Artisan beverage creation focused on organic ingredients, fair-trade beans, and rapid delivery.</p>
+                <div class="social-links">
+                    <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+                    <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-col">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="menu.html">Our Menu</a></li>
+                    <li><a href="delivery.html">Fast Delivery</a></li>
+                    <li><a href="reviews.html">Customer Reviews</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Opening Hours</h4>
+                <p>Monday - Friday: 6:30 AM - 10:00 PM</p>
+                <p>Saturday - Sunday: 7:00 AM - 11:00 PM</p>
+            </div>
+
+            <div class="footer-col newsletter-col">
+                <h4>Stay Brewed In</h4>
+                <p>Subscribe to get 20% off your first artisan drink order.</p>
+                <form class="newsletter-form" id="newsletter-form">
+                    <input type="email" placeholder="Your email address..." required>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="container bottom-flex">
+                <p>&copy; 2026 Drinko Artisan Beverages. All rights reserved.</p>
+                <div class="footer-terms">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Nutritional Guide</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Customization Modal -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-card glass-card">
+            <button class="modal-close" id="modal-close-btn">&times;</button>
+            <div class="modal-grid" id="modal-content">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Dashboard & Auth Modal -->
+    <div class="profile-modal-overlay" id="profile-modal">
+        <div class="profile-modal-card glass-card">
+            <button class="profile-modal-close" id="profile-modal-close-btn" aria-label="Close Profile Modal">&times;</button>
+            <div id="profile-modal-content">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Drawer -->
+    <div class="drawer-overlay" id="cart-drawer-overlay"></div>
+    <aside class="cart-drawer" id="cart-drawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-bag-shopping"></i> Your Brew Cart</h3>
+            <button class="drawer-close" id="cart-close-btn">&times;</button>
+        </div>
+
+        <div class="drawer-body" id="cart-items-container">
+            <!-- Cart items populated by JS -->
+        </div>
+
+        <div class="drawer-footer">
+            <div class="promo-box">
+                <input type="text" id="promo-input" placeholder="Promo code (e.g. DRINKO20)">
+                <button id="apply-promo-btn">Apply</button>
+            </div>
+            
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Delivery Fee</span>
+                    <span id="cart-delivery">$2.50</span>
+                </div>
+                <div class="summary-row discount-row" id="discount-row" style="display: none;">
+                    <span>Discount (20%)</span>
+                    <span id="cart-discount">-$0.00</span>
+                </div>
+                <div class="summary-row total-row">
+                    <span>Total</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary checkout-btn" id="checkout-btn">
+                Proceed to Checkout <i class="fa-solid fa-lock"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Favorites Drawer -->
+    <div class="drawer-overlay" id="fav-drawer-overlay"></div>
+    <aside class="cart-drawer fav-drawer" id="fav-drawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-heart" style="color: var(--accent-red)"></i> Saved Drinks</h3>
+            <button class="drawer-close" id="fav-close-btn">&times;</button>
+        </div>
+        <div class="drawer-body" id="fav-items-container">
+            <!-- Wishlist items populated by JS -->
+        </div>
+    </aside>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Drinko QR Table Ordering - Contactless artisan coffee, craft mocktails and teas right to your café table.">
+    <title>Dine-In Table Ordering | Drinko Artisan Beverages</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../asset/favicon.svg">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:wght@300;400;500;600;700;800&family=Tangerine:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6.5.1 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../style/style.css">
+    <link rel="stylesheet" href="../style/responsive.css">
+
+    <style>
+        
+    </style>
+</head>
+<body>
+
+    <!-- Header / Glassmorphic Navigation -->
+    <header class="site-header" id="header">
+        <nav class="navbar container">
+            <a href="../index.html" class="nav-logo">
+                <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                <h1>drinko</h1>
+            </a>
+
+            <!-- Mobile Drawer Backdrop Overlay -->
+            <div class="nav-drawer-overlay" id="nav-drawer-overlay"></div>
+
+            <div class="nav-menu" id="nav-menu">
+                <div class="drawer-top-bar">
+                    <div class="drawer-logo">
+                        <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                        <h2>drinko</h2>
+                    </div>
+                    <button class="drawer-close-btn" id="nav-close-btn" aria-label="Close Menu">&times;</button>
+                </div>
+
+                <div class="nav-links">
+                    <a href="../index.html" class="nav-link">Home</a>
+                    <a href="menu.html" class="nav-link">Menu</a>
+                    <a href="delivery.html" class="nav-link">Delivery</a>
+                    <a href="reviews.html" class="nav-link">Reviews</a>
+                    <a href="profile.html" class="nav-link">Profile</a>
+                </div>
+
+                <div class="nav-actions">
+                    <div class="action-icons">
+                        <button class="icon-btn heart-btn" id="favorites-toggle-btn" aria-label="View Wishlist">
+                            <i class="fa-regular fa-heart"></i>
+                            <span class="badge" id="fav-count">0</span>
+                        </button>
+                        
+                        <button class="icon-btn profile-btn" id="profile-btn" aria-label="User Profile">
+                            <i class="fa-regular fa-user"></i>
+                        </button>
+
+                        <button class="icon-btn cart-btn" id="cart-toggle-btn" aria-label="Shopping Cart">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span class="badge" id="cart-count">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Table Hero Banner -->
+        <section class="table-banner">
+            <div class="hero-ambient-glow glow-1"></div>
+            <div class="container">
+                <div class="table-pill-badge" id="table-display-pill">
+                    <i class="fa-solid fa-chair"></i> Dining at Table #<span id="table-num">07</span>
+                </div>
+                <h1 class="page-title">Contactless <span class="text-gradient">Table Service</span></h1>
+                <p class="page-desc">Order direct from your seat. Our baristas will craft and serve your brew straight to your table.</p>
+            </div>
+        </section>
+
+        <!-- Live Table Order Tracking Status Card -->
+        <section class="container">
+            <div class="table-status-live" id="live-order-card">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.9rem;">
+                    <div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Active Table Order</span>
+                        <h3 style="font-size: 1.2rem; color: #ffcb77; font-family: monospace;" id="live-order-number">DRK-1042</h3>
+                    </div>
+                    <span class="order-status-tag brewing" id="live-status-pill">PREPARING</span>
+                </div>
+
+                <div class="status-steps">
+                    <div class="status-step completed" id="step-placed">
+                        <div class="status-step-circle"><i class="fa-solid fa-check"></i></div>
+                        <span>Placed</span>
+                    </div>
+                    <div class="status-step completed" id="step-confirmed">
+                        <div class="status-step-circle"><i class="fa-solid fa-check"></i></div>
+                        <span>Confirmed</span>
+                    </div>
+                    <div class="status-step active" id="step-preparing">
+                        <div class="status-step-circle"><i class="fa-solid fa-fire"></i></div>
+                        <span>Brewing</span>
+                    </div>
+                    <div class="status-step" id="step-ready">
+                        <div class="status-step-circle"><i class="fa-solid fa-bell"></i></div>
+                        <span>Serving</span>
+                    </div>
+                    <div class="status-step" id="step-completed">
+                        <div class="status-step-circle"><i class="fa-solid fa-mug-hot"></i></div>
+                        <span>Delivered</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.2rem; font-size: 0.85rem; color: var(--text-sub); text-align: center;" id="live-status-desc">
+                    <i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i> Our barista is currently crafting your customized order.
+                </div>
+            </div>
+        </section>
+
+        <!-- Menu Section for Dine In -->
+        <section class="container" style="margin-bottom: 5rem;">
+            <!-- Category Filter Pills -->
+            <div class="category-pills" id="category-pills">
+                <button class="pill-btn active" data-category="all">
+                    <i class="fa-solid fa-sparkles"></i> All Brews
+                </button>
+                <button class="pill-btn" data-category="coffee">
+                    <i class="fa-solid fa-mug-hot"></i> Coffee
+                </button>
+                <button class="pill-btn" data-category="tea">
+                    <i class="fa-solid fa-leaf"></i> Handcrafted Tea
+                </button>
+                <button class="pill-btn" data-category="mocktail">
+                    <i class="fa-solid fa-glass-water"></i> Craft Mocktails
+                </button>
+                <button class="pill-btn" data-category="smoothie">
+                    <i class="fa-solid fa-blender"></i> Boba & Smoothies
+                </button>
+            </div>
+
+            <!-- Menu Grid -->
+            <div class="menu-grid" id="menu-grid">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Customization Modal -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-container">
+            <button class="modal-close" id="modal-close-btn" aria-label="Close modal">&times;</button>
+            <div class="modal-grid" id="modal-content">
+                <!-- Customization Content populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Drawer -->
+    <div class="drawer-overlay" id="cart-drawer-overlay"></div>
+    <aside class="cart-drawer" id="cart-drawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-chair" style="color: var(--primary);"></i> Table #<span id="drawer-table-num">07</span> Order</h3>
+            <button class="drawer-close" id="cart-close-btn">&times;</button>
+        </div>
+        <div class="drawer-body" id="cart-items-container">
+            <!-- Cart items populated by JS -->
+        </div>
+        <div class="drawer-footer">
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Dine-In Service Fee</span>
+                    <span id="cart-delivery">$0.00</span>
+                </div>
+                <div class="summary-row discount-row" id="discount-row" style="display: none;">
+                    <span>Promo Discount</span>
+                    <span id="cart-discount">-$0.00</span>
+                </div>
+                <div class="summary-row total-row">
+                    <span>Total</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary checkout-btn" id="table-checkout-btn">
+                Send Order to Kitchen <i class="fa-solid fa-bell-concierge"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Favorites Drawer -->
+    <div class="drawer-overlay" id="fav-drawer-overlay"></div>
+    <aside class="cart-drawer fav-drawer" id="fav-drawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-heart" style="color: var(--accent-red)"></i> Saved Drinks</h3>
+            <button class="drawer-close" id="fav-close-btn">&times;</button>
+        </div>
+        <div class="drawer-body" id="fav-items-container"></div>
+    </aside>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts: Socket.io, API Client, and Order Page Script -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/script.js"></script>
+    <script src="../scripts/table-order.js"></script>
+</body>
+</html>

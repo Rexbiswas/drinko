@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drinko Admin & Kitchen Command Center</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../asset/favicon.svg">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600..900;1,600..900&family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6.5.1 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Admin Styling -->
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+    <!-- AUTH GATE: Shows if not logged in as Admin or Staff -->
+    <div id="admin-login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-brand">
+                <i class="fa-solid fa-mug-hot logo-icon"></i>
+                <h2>DRINKO COMMAND</h2>
+                <p>Artisan Café Administration & Kitchen System</p>
+            </div>
+            <form id="admin-login-form">
+                <div class="input-field">
+                    <label>Staff / Admin Email</label>
+                    <input type="email" id="adm-email" value="admin@drinko.com" required placeholder="admin@drinko.com">
+                </div>
+                <div class="input-field">
+                    <label>Password</label>
+                    <input type="password" id="adm-password" value="adminpassword123" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-login-submit">
+                    <i class="fa-solid fa-lock"></i> Authorize & Enter
+                </button>
+                <div class="login-hints">
+                    <span>Admin: admin@drinko.com / adminpassword123</span>
+                    <span>Kitchen: kitchen@drinko.com / staffpassword123</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN ADMIN LAYOUT -->
+    <div class="admin-wrapper" id="admin-main-wrapper" style="display: none;">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-logo">
+                    <i class="fa-solid fa-mug-hot"></i>
+                    <span>drinko</span>
+                </a>
+                <span class="role-pill" id="adm-role-badge">ADMIN</span>
+            </div>
+
+            <nav class="sidebar-menu">
+                <button class="nav-item active" data-view="view-kitchen">
+                    <i class="fa-solid fa-fire-burner"></i>
+                    <span>Kitchen Display</span>
+                    <span class="pulse-counter" id="kitchen-active-count">0</span>
+                </button>
+                <button class="nav-item" data-view="view-dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Overview & KPIs</span>
+                </button>
+                <button class="nav-item" data-view="view-orders">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>All Orders</span>
+                </button>
+                <button class="nav-item" data-view="view-products">
+                    <i class="fa-solid fa-mug-saucer"></i>
+                    <span>Products & Menu</span>
+                </button>
+                <button class="nav-item" data-view="view-inventory">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>Inventory & Stock</span>
+                    <span class="alert-counter" id="inventory-low-count" style="display: none;">0</span>
+                </button>
+                <button class="nav-item" data-view="view-coupons">
+                    <i class="fa-solid fa-ticket"></i>
+                    <span>Coupons & Promos</span>
+                </button>
+                <button class="nav-item" data-view="view-tables">
+                    <i class="fa-solid fa-chair"></i>
+                    <span>Tables & QR Dining</span>
+                </button>
+                <button class="nav-item" data-view="view-reviews">
+                    <i class="fa-solid fa-star-half-stroke"></i>
+                    <span>Reviews & Moderation</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="logged-user">
+                    <div class="adm-avatar" id="adm-initials">AD</div>
+                    <div class="user-meta">
+                        <strong id="adm-user-name">Administrator</strong>
+                        <span id="adm-user-email">admin@drinko.com</span>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btn-admin-logout" title="Sign Out">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- TOP BAR & MAIN CONTENT -->
+        <div class="admin-main">
+            <header class="admin-topbar">
+                <div class="topbar-title-row">
+                    <h2 id="current-view-title">Kitchen Display System</h2>
+                    <span class="live-pulse"><span class="dot"></span> Live Socket Sync Active</span>
+                </div>
+                <div class="topbar-actions">
+                    <!-- Customer Storefront Control Group (Link + Enable/Disable Toggle) -->
+                    <div class="storefront-ctrl-group">
+                        <a href="../index.html" class="topbar-btn" id="link-customer-front" target="_blank" title="View Customer Storefront">
+                            <i class="fa-solid fa-store"></i> Customer Front
+                        </a>
+                        <button class="topbar-toggle-btn active" id="btn-toggle-storefront" title="Click to Enable or Disable Customer Front">
+                            <span class="toggle-pill-dot"></span>
+                            <span id="storefront-toggle-label">Enabled</span>
+                        </button>
+                    </div>
+
+                    <button class="topbar-btn" id="btn-refresh-data" title="Refresh Live Data">
+                        <i class="fa-solid fa-rotate"></i> Sync
+                    </button>
+                </div>
+            </header>
+
+            <main class="admin-content-area">
+                
+                <!-- VIEW 1: KITCHEN DISPLAY SYSTEM (KDS) -->
+                <section class="admin-view active" id="view-kitchen">
+                    <div class="kds-columns-grid">
+                        
+                        <!-- Col 1: PLACED / NEW -->
+                        <div class="kds-col">
+                            <div class="kds-col-header header-placed">
+                                <span><i class="fa-solid fa-bell"></i> New Orders</span>
+                                <span class="kds-badge" id="kds-count-placed">0</span>
+                            </div>
+                            <div class="kds-cards-container" id="kds-cards-placed">
+                                <!-- Cards populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Col 2: CONFIRMED -->
+                        <div class="kds-col">
+                            <div class="kds-col-header header-confirmed">
+                                <span><i class="fa-solid fa-circle-check"></i> Confirmed</span>
+                                <span class="kds-badge" id="kds-count-confirmed">0</span>
+                            </div>
+                            <div class="kds-cards-container" id="kds-cards-confirmed"></div>
+                        </div>
+
+                        <!-- Col 3: PREPARING / BREWING -->
+                        <div class="kds-col">
+                            <div class="kds-col-header header-preparing">
+                                <span><i class="fa-solid fa-fire"></i> Brewing / Frothing</span>
+                                <span class="kds-badge" id="kds-count-preparing">0</span>
+                            </div>
+                            <div class="kds-cards-container" id="kds-cards-preparing"></div>
+                        </div>
+
+                        <!-- Col 4: READY TO SERVE -->
+                        <div class="kds-col">
+                            <div class="kds-col-header header-ready">
+                                <span><i class="fa-solid fa-utensils"></i> Ready for Pickup</span>
+                                <span class="kds-badge" id="kds-count-ready">0</span>
+                            </div>
+                            <div class="kds-cards-container" id="kds-cards-ready"></div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- VIEW 2: OVERVIEW & ANALYTICS -->
+                <section class="admin-view" id="view-dashboard">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon icon-rev"><i class="fa-solid fa-money-bill-wave"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Today's Revenue</span>
+                                <strong class="kpi-value" id="kpi-revenue">$0.00</strong>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon icon-orders"><i class="fa-solid fa-receipt"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Today's Orders</span>
+                                <strong class="kpi-value" id="kpi-orders-count">0</strong>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon icon-pending"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Pending In-Flight</span>
+                                <strong class="kpi-value" id="kpi-pending-count">0</strong>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon icon-customers"><i class="fa-solid fa-users"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Total Customers</span>
+                                <strong class="kpi-value" id="kpi-customers-count">0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-panels-grid">
+                        <div class="dash-panel">
+                            <h3><i class="fa-solid fa-fire text-amber"></i> Top Bestsellers</h3>
+                            <div id="top-products-list" class="bestsellers-list">
+                                <!-- Top items -->
+                            </div>
+                        </div>
+                        <div class="dash-panel">
+                            <h3><i class="fa-solid fa-triangle-exclamation text-red"></i> Low Stock Alerts</h3>
+                            <div id="low-stock-list" class="low-stock-list">
+                                <!-- Low stock warnings -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 3: ALL ORDERS TABLE -->
+                <section class="admin-view" id="view-orders">
+                    <div class="filter-bar">
+                        <input type="text" id="order-search" placeholder="Search by Order # or Customer..." class="adm-search">
+                        <select id="order-status-filter" class="adm-select">
+                            <option value="">All Statuses</option>
+                            <option value="PLACED">Placed</option>
+                            <option value="CONFIRMED">Confirmed</option>
+                            <option value="PREPARING">Preparing</option>
+                            <option value="READY">Ready</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Type</th>
+                                    <th>Customer / Table</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body">
+                                <!-- Dynamically loaded -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW 4: PRODUCTS & MENU -->
+                <section class="admin-view" id="view-products">
+                    <div class="filter-bar" style="justify-content: space-between;">
+                        <input type="text" id="prod-search" placeholder="Search menu catalog..." class="adm-search">
+                        <button class="btn-action-primary" id="btn-add-product">
+                            <i class="fa-solid fa-plus"></i> Add New Product
+                        </button>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Base Price</th>
+                                    <th>Rating</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW 5: INVENTORY & STOCK -->
+                <section class="admin-view" id="view-inventory">
+                    <div class="filter-bar">
+                        <h3><i class="fa-solid fa-boxes-stacked text-amber"></i> Live Ingredient Stock Levels</h3>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>Ingredient</th>
+                                    <th>Current Quantity</th>
+                                    <th>Minimum Safe Stock</th>
+                                    <th>Cost per Unit</th>
+                                    <th>Stock Status</th>
+                                    <th>Restock Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW 6: COUPONS -->
+                <section class="admin-view" id="view-coupons">
+                    <div class="filter-bar" style="justify-content: space-between;">
+                        <h3>Active Promotional Coupons</h3>
+                        <button class="btn-action-primary" id="btn-create-coupon">
+                            <i class="fa-solid fa-plus"></i> Create Coupon
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Discount</th>
+                                    <th>Min Order</th>
+                                    <th>Usage Count</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coupons-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW 7: TABLES & QR DINING -->
+                <section class="admin-view" id="view-tables">
+                    <div class="filter-bar" style="justify-content: space-between;">
+                        <h3>Dine-In Tables & Contactless QR Links</h3>
+                        <button class="btn-action-primary" id="btn-create-table">
+                            <i class="fa-solid fa-plus"></i> Register Table
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>Table #</th>
+                                    <th>Capacity</th>
+                                    <th>QR Code Link</th>
+                                    <th>Occupancy</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tables-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW 8: REVIEWS MODERATION -->
+                <section class="admin-view" id="view-reviews">
+                    <div class="filter-bar">
+                        <h3>Customer Reviews & Ratings Moderation</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Drink</th>
+                                    <th>Rating</th>
+                                    <th>Comment</th>
+                                    <th>Approved</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviews-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="adm-toast-container" id="adm-toast-container"></div>
+
+    <!-- Scripts: Socket.io, API Client, and Admin Logic -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

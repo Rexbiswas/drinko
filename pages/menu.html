@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Drinko Menu - Explore Handcrafted Artisan Cold Brews, Ceremonial Matcha, Organic Boba & Botanical Mocktails.">
+    <title>Menu | Drinko Artisan Beverages</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../asset/favicon.svg">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:wght@300;400;500;600;700;800&family=Tangerine:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6.5.1 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../style/style.css">
+    <link rel="stylesheet" href="../style/responsive.css">
+</head>
+<body>
+
+    <!-- Header / Glassmorphic Navigation -->
+    <header class="site-header" id="header">
+        <nav class="navbar container">
+            <a href="../index.html" class="nav-logo">
+                <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                <h1>drinko</h1>
+            </a>
+
+            <!-- Mobile Drawer Backdrop Overlay -->
+            <div class="nav-drawer-overlay" id="nav-drawer-overlay"></div>
+
+            <div class="nav-menu" id="nav-menu">
+                <div class="drawer-top-bar">
+                    <div class="drawer-logo">
+                        <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                        <h2>drinko</h2>
+                    </div>
+                    <button class="drawer-close-btn" id="nav-close-btn" aria-label="Close Menu">&times;</button>
+                </div>
+
+                <div class="nav-links">
+                    <a href="../index.html" class="nav-link">Home</a>
+                    <a href="menu.html" class="nav-link active">Menu</a>
+                    <a href="delivery.html" class="nav-link">Delivery</a>
+                    <a href="reviews.html" class="nav-link">Reviews</a>
+                    <a href="profile.html" class="nav-link">Profile</a>
+                </div>
+
+                <div class="nav-actions">
+                    <div class="action-icons">
+                        <button class="icon-btn heart-btn" id="favorites-toggle-btn" aria-label="View Wishlist">
+                            <i class="fa-regular fa-heart"></i>
+                            <span class="badge" id="fav-count">0</span>
+                        </button>
+                        
+                        <button class="icon-btn profile-btn" id="profile-btn" aria-label="User Profile">
+                            <i class="fa-regular fa-user"></i>
+                        </button>
+
+                        <button class="icon-btn cart-btn" id="cart-toggle-btn" aria-label="Shopping Cart">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span class="badge" id="cart-count">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Page Hero Banner -->
+        <section class="page-hero-banner">
+            <div class="hero-ambient-glow glow-1"></div>
+            <div class="hero-ambient-glow glow-2"></div>
+            <div class="container">
+                <div class="breadcrumbs">
+                    <a href="../index.html"><i class="fa-solid fa-house"></i> Home</a>
+                    <i class="fa-solid fa-chevron-right"></i>
+                    <span>Menu</span>
+                </div>
+                <h1 class="page-title">Curated Artisan <span class="text-gradient">Beverage Menu</span></h1>
+                <p class="page-desc">Every cup is brewed with single-origin beans, ceremonial Japanese matcha, and pure botanicals. Customized to your exact palate.</p>
+            </div>
+        </section>
+
+        <!-- Menu Filter & Grid Section -->
+        <section class="menu-section container" style="padding-top: 1rem;">
+            <!-- Category Pills -->
+            <div class="category-pills" id="category-pills">
+                <button class="pill-btn active" data-category="all">
+                    <i class="fa-solid fa-border-all"></i> All Drinks
+                </button>
+                <button class="pill-btn" data-category="coffee">
+                    <i class="fa-solid fa-mug-hot"></i> Coffee & Espresso
+                </button>
+                <button class="pill-btn" data-category="mocktail">
+                    <i class="fa-solid fa-glass-water"></i> Craft Mocktails
+                </button>
+                <button class="pill-btn" data-category="tea">
+                    <i class="fa-solid fa-leaf"></i> Artisan Teas
+                </button>
+                <button class="pill-btn" data-category="smoothie">
+                    <i class="fa-solid fa-blender"></i> Smoothies & Boba
+                </button>
+            </div>
+
+            <!-- Full Menu Grid -->
+            <div class="menu-grid" id="menu-grid">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </section>
+
+        <!-- CTA Banner -->
+        <section class="cta-banner-section container">
+            <div class="cta-banner-card glass-card">
+                <h2>Ready for an Instant Caffeine Lift?</h2>
+                <p>Order your favorite drink right now and watch it arrive fresh and frosty in 15 minutes.</p>
+                <div class="cta-banner-buttons">
+                    <a href="delivery.html" class="btn btn-primary btn-glow">
+                        <i class="fa-solid fa-bolt"></i> Check Delivery Times
+                    </a>
+                    <a href="reviews.html" class="btn btn-secondary">
+                        <i class="fa-solid fa-star"></i> Read Verified Reviews
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container footer-content">
+            <div class="footer-col brand-col">
+                <a href="../index.html" class="nav-logo">
+                    <span class="logo-icon"><i class="fa-solid fa-mug-hot"></i></span>
+                    <h2>drinko</h2>
+                </a>
+                <p>Artisan beverage creation focused on organic ingredients, fair-trade beans, and rapid delivery.</p>
+                <div class="social-links">
+                    <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+                    <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-col">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="menu.html">Our Menu</a></li>
+                    <li><a href="delivery.html">Fast Delivery</a></li>
+                    <li><a href="reviews.html">Customer Reviews</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Opening Hours</h4>
+                <p>Monday - Friday: 6:30 AM - 10:00 PM</p>
+                <p>Saturday - Sunday: 7:00 AM - 11:00 PM</p>
+            </div>
+
+            <div class="footer-col newsletter-col">
+                <h4>Stay Brewed In</h4>
+                <p>Subscribe to get 20% off your first artisan drink order.</p>
+                <form class="newsletter-form" id="newsletter-form">
+                    <input type="email" placeholder="Your email address..." required>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="container bottom-flex">
+                <p>&copy; 2026 Drinko Artisan Beverages. All rights reserved.</p>
+                <div class="footer-terms">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Nutritional Guide</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Customization Modal -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-card glass-card">
+            <button class="modal-close" id="modal-close-btn">&times;</button>
+            <div class="modal-grid" id="modal-content">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Dashboard & Auth Modal -->
+    <div class="profile-modal-overlay" id="profile-modal">
+        <div class="profile-modal-card glass-card">
+            <button class="profile-modal-close" id="profile-modal-close-btn" aria-label="Close Profile Modal">&times;</button>
+            <div id="profile-modal-content">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Drawer -->
+    <div class="drawer-overlay" id="cart-drawer-overlay"></div>
+    <aside class="cart-drawer" id="cart-drawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-bag-shopping"></i> Your Brew Cart</h3>
+            <button class="drawer-close" id="cart-close-btn">&times;</button>
+        </div>
+
+        <div class="drawer-body" id="cart-items-container">
+            <!-- Cart items populated by JS -->
+        </div>
+
+        <div class="drawer-footer">
+            <div class="promo-box">
+                <input type="text" id="promo-input" placeholder="Promo code (e.g. DRINKO20)">
+                <button id="apply-promo-btn">Apply</button>
+            </div>
+            
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Delivery Fee</span>
+                    <span id="cart-delivery">$2.50</span>
+                </div>
+                <div class="summary-row discount-row" id="discount-row" style="display: none;">
+                    <span>Discount (20%)</span>
+                    <span id="cart-discount">-$0.00</span>
+                </div>
+                <div class="summary-row total-row">
+                    <span>Total</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary checkout-btn" id="checkout-btn">
+                Proceed to Checkout <i class="fa-solid fa-lock"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Favorites Drawer -->
+    <div class="drawer-overlay" id="fav-drawer-overlay"></div>
+    <aside class="cart-drawer fav-drawer" id="fav-drawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-heart" style="color: var(--accent-red)"></i> Saved Drinks</h3>
+            <button class="drawer-close" id="fav-close-btn">&times;</button>
+        </div>
+        <div class="drawer-body" id="fav-items-container">
+            <!-- Wishlist items populated by JS -->
+        </div>
+    </aside>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/script.js"></script>
+</body>
+</html>
