@@ -1,22 +1,37 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
+  // Re-use existing open Mongoose connection if active
+  if (mongoose.connection && mongoose.connection.readyState >= 1) {
+    return mongoose.connection;
+  }
+
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/drinko';
+    const isVercel = Boolean(process.env.VERCEL);
+    const mongoURI = process.env.MONGODB_URI || (!isVercel ? 'mongodb://localhost:27017/drinko' : null);
     
-    // Set a quick serverSelectionTimeoutMS so if local mongod is absent, we can fall back to in-memory MongoDB
     mongoose.set('strictQuery', true);
+
+    if (!mongoURI && isVercel) {
+      console.warn('[Drinko DB] Warning: MONGODB_URI is not set in Vercel environment variables. Please add MONGODB_URI in your Vercel Project Settings > Environment Variables.');
+      throw new Error('Database connection string (MONGODB_URI) is not configured in Vercel. Please add MONGODB_URI in your Vercel Project Settings.');
+    }
     
     try {
       const conn = await mongoose.connect(mongoURI, {
-        serverSelectionTimeoutMS: 2500
+        serverSelectionTimeoutMS: 5000
       });
       console.log(`[Drinko DB] Connected to MongoDB: ${conn.connection.host}`);
       return conn;
     } catch (primaryErr) {
       console.warn(`[Drinko DB] Could not connect to primary MongoDB at ${mongoURI} (${primaryErr.message}).`);
       
-      // Fallback: Use mongodb-memory-server for seamless local development
+      // On Vercel, in-memory MongoDB server cannot run due to serverless read-only restrictions
+      if (isVercel) {
+        throw new Error(`MongoDB connection failed: ${primaryErr.message}. Verify that MONGODB_URI in Vercel settings has network access (0.0.0.0/0 on Atlas) and valid credentials.`);
+      }
+
+      // Local Development Fallback: Use mongodb-memory-server
       try {
         console.log('[Drinko DB] Starting in-memory MongoDB server for development...');
         const path = require('path');
@@ -43,8 +58,11 @@ const connectDB = async () => {
       }
     }
   } catch (error) {
-    console.error('[Drinko DB] Critical Error connecting to Database:', error.message);
-    process.exit(1);
+    console.error('[Drinko DB] Database Connection Notice:', error.message);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 

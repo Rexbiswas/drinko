@@ -2431,17 +2431,41 @@ async function handleSignInSubmit(e) {
     try {
         showToast('Signing in...', 'fa-spinner fa-spin');
         if (typeof DrinkoAPI !== 'undefined') {
-            const res = await DrinkoAPI.auth.login(email, password);
-            if (res && res.user) {
+            try {
+                const res = await DrinkoAPI.auth.login(email, password);
+                if (res && res.user) {
+                    currentUser = {
+                        name: res.user.name,
+                        email: res.user.email,
+                        phone: res.user.phone,
+                        role: res.user.role,
+                        tier: 'Gold Connoisseur',
+                        beans: res.user.loyaltyPoints || 0,
+                        orders: res.user.orders || [],
+                        preferences: res.user.preferences || {}
+                    };
+                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
+                    updateProfileButtonState();
+                    showToast(`Welcome back, ${currentUser.name}! ☕`, 'fa-circle-check');
+                    renderProfileModal();
+                    return;
+                }
+            } catch (apiErr) {
+                // If credentials mismatch or user not found, show user-friendly message
+                if (apiErr.message && !apiErr.message.includes('500') && !apiErr.message.includes('failed with status')) {
+                    showToast(apiErr.message, 'fa-triangle-exclamation');
+                    return;
+                }
+                // Fallback to local session if cloud DB is unreachable or unconfigured
                 currentUser = {
-                    name: res.user.name,
-                    email: res.user.email,
-                    phone: res.user.phone,
-                    role: res.user.role,
+                    name: email.split('@')[0],
+                    email: email,
+                    phone: '+91 9876543210',
+                    role: 'customer',
                     tier: 'Gold Connoisseur',
-                    beans: res.user.loyaltyPoints || 0,
-                    orders: res.user.orders || [],
-                    preferences: res.user.preferences || {}
+                    beans: 100,
+                    orders: [],
+                    preferences: {}
                 };
                 localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
                 updateProfileButtonState();
@@ -2478,22 +2502,47 @@ async function handleSignUpSubmit(e) {
     try {
         showToast('Creating artisan account...', 'fa-spinner fa-spin');
         if (typeof DrinkoAPI !== 'undefined') {
-            const res = await DrinkoAPI.auth.register({ name, email, password, phone: '+91 9876543210' });
-            if (res && res.user) {
+            try {
+                const res = await DrinkoAPI.auth.register({ name, email, password, phone: '+91 9876543210' });
+                if (res && res.user) {
+                    currentUser = {
+                        name: res.user.name,
+                        email: res.user.email,
+                        phone: res.user.phone,
+                        role: res.user.role,
+                        tier: 'Gold Connoisseur',
+                        beans: res.user.loyaltyPoints || 100,
+                        orders: [],
+                        favoriteStyle: pref,
+                        preferences: {}
+                    };
+                    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
+                    updateProfileButtonState();
+                    showToast(`Welcome to Drinko, ${currentUser.name}! +100 Loyalty Beans credited 🎉`, 'fa-sparkles');
+                    renderProfileModal();
+                    return;
+                }
+            } catch (apiErr) {
+                // If email already exists or validation error, show it directly
+                if (apiErr.message && !apiErr.message.includes('500') && !apiErr.message.includes('failed with status')) {
+                    showToast(apiErr.message, 'fa-triangle-exclamation');
+                    return;
+                }
+                // Fallback to local session if cloud DB is unreachable or unconfigured
                 currentUser = {
-                    name: res.user.name,
-                    email: res.user.email,
-                    phone: res.user.phone,
-                    role: res.user.role,
+                    name: name,
+                    email: email,
+                    phone: '+91 9876543210',
+                    role: 'customer',
                     tier: 'Gold Connoisseur',
-                    beans: res.user.loyaltyPoints || 100,
+                    beans: 100,
                     orders: [],
                     favoriteStyle: pref,
                     preferences: {}
                 };
                 localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
                 updateProfileButtonState();
-                showToast(`Welcome to Drinko, ${currentUser.name}! +100 Loyalty Beans credited 🎉`, 'fa-sparkles');
+                showToast(`Welcome to Drinko, ${name}! +100 Loyalty Beans credited 🎉`, 'fa-sparkles');
                 renderProfileModal();
                 return;
             }

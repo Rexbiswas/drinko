@@ -18,18 +18,22 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const Product = require('./models/Product');
 const seedData = require('./utils/seed');
 
-// Connect to Database & Auto-seed if database is fresh/empty
-connectDB().then(async () => {
-  try {
-    const prodCount = await Product.countDocuments();
-    if (prodCount === 0) {
-      console.log('[Drinko DB] Fresh database detected. Auto-seeding initial categories, products, inventory, tables & users...');
-      await seedData();
+// Connect to Database & Auto-seed if database is fresh/empty (Standalone daemon mode)
+if (require.main === module) {
+  connectDB().then(async () => {
+    try {
+      const prodCount = await Product.countDocuments();
+      if (prodCount === 0) {
+        console.log('[Drinko DB] Fresh database detected. Auto-seeding initial categories, products, inventory, tables & users...');
+        await seedData();
+      }
+    } catch (err) {
+      console.warn('[Drinko DB] Auto-seed check note:', err.message);
     }
-  } catch (err) {
-    console.warn('[Drinko DB] Auto-seed check note:', err.message);
-  }
-});
+  }).catch(err => {
+    console.warn('[Drinko DB] Initial startup connection note:', err.message);
+  });
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -115,14 +119,16 @@ app.get('*', (req, res, next) => {
 // Centralized Error Handling Middleware
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`  DRINKO FULL-STACK SERVER RUNNING ON PORT ${PORT}     `);
-  console.log(`  Frontend: http://localhost:${PORT}                    `);
-  console.log(`  Real-Time Socket.IO Active                            `);
-  console.log(`  Admin:    http://localhost:${PORT}/admin              `);
-  console.log(`=======================================================`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`  DRINKO FULL-STACK SERVER RUNNING ON PORT ${PORT}     `);
+    console.log(`  Frontend: http://localhost:${PORT}                    `);
+    console.log(`  Real-Time Socket.IO Active                            `);
+    console.log(`  Admin:    http://localhost:${PORT}/admin              `);
+    console.log(`=======================================================`);
+  });
+}
 
 module.exports = { app, server };
