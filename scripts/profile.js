@@ -650,9 +650,9 @@ function renderProfileDropdown() {
             <div class="pdm-user-meta">
                 <h4 class="pdm-name">${u.name}</h4>
                 <span class="pdm-email">${u.email || ''}</span>
-                <div class="pdm-tier-badge">
-                    <i class="fa-solid fa-crown"></i> Gold Connoisseur
-                </div>
+            </div>
+            <div class="pdm-tier-badge">
+                <i class="fa-solid fa-crown"></i> VIP
             </div>
         </div>
 
@@ -664,44 +664,24 @@ function renderProfileDropdown() {
             <div class="pdm-beans-bar">
                 <div class="pdm-beans-bar-fill" style="width: ${Math.min(100, Math.round(((u.loyaltyPoints || 0) / 200) * 100))}%;"></div>
             </div>
-            <div class="pdm-beans-hint">
-                <i class="fa-solid fa-sparkles"></i>
-                <span>${(u.loyaltyPoints || 0) >= 200 ? 'Free Drink reward ready! 🎉' : `${Math.max(0, 200 - (u.loyaltyPoints || 0))} beans to next free drink`}</span>
-            </div>
         </div>
 
-        <div class="pdm-nav-list" style="margin-top: 0.8rem;">
+        <div class="pdm-nav-list">
             <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); document.querySelector('.profile-nav-item[data-tab=\\'tab-orders\\']')?.click();">
-                <div class="pdm-nav-icon"><i class="fa-solid fa-receipt"></i></div>
-                <div class="pdm-nav-text">
-                    <strong>My Orders & Tracking</strong>
-                    <small>View past coffee deliveries</small>
-                </div>
-                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                <i class="fa-solid fa-receipt pdm-nav-icon-inline"></i>
+                <span>My Orders & Tracking</span>
             </button>
             <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); document.querySelector('.profile-nav-item[data-tab=\\'tab-preferences\\']')?.click();">
-                <div class="pdm-nav-icon"><i class="fa-solid fa-sliders"></i></div>
-                <div class="pdm-nav-text">
-                    <strong>Brew Preferences</strong>
-                    <small>Customize roast, milk & sweetness</small>
-                </div>
-                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                <i class="fa-solid fa-sliders pdm-nav-icon-inline"></i>
+                <span>Brew Preferences</span>
             </button>
             <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); document.querySelector('.profile-nav-item[data-tab=\\'tab-addresses\\']')?.click();">
-                <div class="pdm-nav-icon"><i class="fa-solid fa-location-dot"></i></div>
-                <div class="pdm-nav-text">
-                    <strong>Saved Delivery Addresses</strong>
-                    <small>Manage home & office drop-offs</small>
-                </div>
-                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                <i class="fa-solid fa-location-dot pdm-nav-icon-inline"></i>
+                <span>Saved Addresses</span>
             </button>
             <a href="menu.html" class="pdm-nav-item" onclick="closeProfileDropdown()">
-                <div class="pdm-nav-icon"><i class="fa-solid fa-compass"></i></div>
-                <div class="pdm-nav-text">
-                    <strong>Explore Drinko Menu</strong>
-                    <small>Artisan coffee, teas & blends</small>
-                </div>
-                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                <i class="fa-solid fa-compass pdm-nav-icon-inline"></i>
+                <span>Explore Menu</span>
             </a>
         </div>
 

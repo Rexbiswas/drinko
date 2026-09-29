@@ -1387,9 +1387,9 @@ function renderProfileDropdown() {
                 <div class="pdm-user-meta">
                     <h4 class="pdm-name">${currentUser.name}</h4>
                     <span class="pdm-email">${currentUser.email}</span>
-                    <div class="pdm-tier-badge">
-                        <i class="fa-solid fa-crown"></i> ${currentUser.tier || 'Gold Connoisseur'}
-                    </div>
+                </div>
+                <div class="pdm-tier-badge">
+                    <i class="fa-solid fa-crown"></i> ${currentUser.tier ? currentUser.tier.split(' ')[0] : 'VIP'}
                 </div>
             </div>
 
@@ -1401,76 +1401,41 @@ function renderProfileDropdown() {
                 <div class="pdm-beans-bar">
                     <div class="pdm-beans-bar-fill" style="width: ${Math.min(100, Math.round(((currentUser.beans || 0) / 200) * 100))}%;"></div>
                 </div>
-                <div class="pdm-beans-hint">
-                    <i class="fa-solid fa-sparkles"></i>
-                    <span>${currentUser.beans >= 200 ? 'Free Drink reward ready! 🎉' : `${Math.max(0, 200 - (currentUser.beans || 0))} beans to next free drink`}</span>
-                </div>
             </div>
 
-            <div class="pdm-stats-grid">
-                <div class="pdm-stat">
-                    <span class="pdm-stat-num">${(currentUser.orders && currentUser.orders.length) || 0}</span>
-                    <span class="pdm-stat-label">Orders</span>
-                </div>
-                <div class="pdm-stat">
-                    <span class="pdm-stat-num" style="color: #ffcb77;">${currentUser.beans || 0}</span>
-                    <span class="pdm-stat-label">Beans</span>
-                </div>
-                <div class="pdm-stat">
-                    <span class="pdm-stat-num" style="color: #4ade80;">10%</span>
-                    <span class="pdm-stat-label">VIP Off</span>
-                </div>
+            <div class="pdm-stats-strip">
+                <span><strong>${(currentUser.orders && currentUser.orders.length) || 0}</strong> Orders</span>
+                <span class="pdm-dot">•</span>
+                <span><strong>${currentUser.beans || 0}</strong> Beans</span>
+                <span class="pdm-dot">•</span>
+                <span style="color: #4ade80;"><strong>10%</strong> Off</span>
             </div>
 
             <div class="pdm-nav-list">
                 <a href="${profileHref}" class="pdm-nav-item" onclick="closeProfileDropdown()">
-                    <div class="pdm-nav-icon"><i class="fa-solid fa-id-badge"></i></div>
-                    <div class="pdm-nav-text">
-                        <strong>VIP Lounge & Profile</strong>
-                        <small>Manage tier, cards & addresses</small>
-                    </div>
-                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                    <i class="fa-solid fa-id-badge pdm-nav-icon-inline"></i>
+                    <span>VIP Lounge & Profile</span>
                 </a>
                 <button type="button" class="pdm-nav-item" onclick="openProfileOrdersModal()">
-                    <div class="pdm-nav-icon"><i class="fa-solid fa-receipt"></i></div>
-                    <div class="pdm-nav-text">
-                        <strong>Recent Orders & History</strong>
-                        <small>${(currentUser.orders && currentUser.orders.length) || 0} active & past orders</small>
-                    </div>
-                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                    <i class="fa-solid fa-receipt pdm-nav-icon-inline"></i>
+                    <span>Recent Orders (${(currentUser.orders && currentUser.orders.length) || 0})</span>
                 </button>
                 <button type="button" class="pdm-nav-item" onclick="openProfilePreferencesModal()">
-                    <div class="pdm-nav-icon"><i class="fa-solid fa-sliders"></i></div>
-                    <div class="pdm-nav-text">
-                        <strong>Brew Preferences</strong>
-                        <small>Milk, roast & sweetness</small>
-                    </div>
-                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                    <i class="fa-solid fa-sliders pdm-nav-icon-inline"></i>
+                    <span>Brew Preferences</span>
                 </button>
                 <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); openFavDrawer();">
-                    <div class="pdm-nav-icon"><i class="fa-regular fa-heart"></i></div>
-                    <div class="pdm-nav-text">
-                        <strong>Saved Wishlist</strong>
-                        <small>${typeof favorites !== 'undefined' ? favorites.length : 0} saved beverages</small>
-                    </div>
-                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                    <i class="fa-regular fa-heart pdm-nav-icon-inline"></i>
+                    <span>Saved Wishlist (${typeof favorites !== 'undefined' ? favorites.length : 0})</span>
                 </button>
                 <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); openCartDrawer();">
-                    <div class="pdm-nav-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-                    <div class="pdm-nav-text">
-                        <strong>Artisan Cart</strong>
-                        <small>${typeof cart !== 'undefined' ? cart.reduce((s,i)=>s+i.quantity,0) : 0} items ready</small>
-                    </div>
-                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                    <i class="fa-solid fa-cart-shopping pdm-nav-icon-inline"></i>
+                    <span>Artisan Cart (${typeof cart !== 'undefined' ? cart.reduce((s,i)=>s+i.quantity,0) : 0})</span>
                 </button>
                 ${currentUser.role === 'admin' ? `
-                    <a href="${adminHref}" class="pdm-nav-item" onclick="closeProfileDropdown()">
-                        <div class="pdm-nav-icon admin-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                        <div class="pdm-nav-text">
-                            <strong style="color: #ffcb77;">Admin Dashboard</strong>
-                            <small>Store management & inventory</small>
-                        </div>
-                        <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                    <a href="${adminHref}" class="pdm-nav-item" onclick="closeProfileDropdown()" style="color: #ffcb77;">
+                        <i class="fa-solid fa-shield-halved pdm-nav-icon-inline" style="color: #ffcb77;"></i>
+                        <span>Admin Console</span>
                     </a>
                 ` : ''}
             </div>
@@ -1487,15 +1452,15 @@ function renderProfileDropdown() {
                 <div class="pdm-guest-badge">
                     <i class="fa-solid fa-mug-hot"></i>
                 </div>
-                <h4>Artisan Coffee Pass</h4>
-                <p>Unlock VIP perks, earn +100 Loyalty Beans on signup, and customize your handcrafted brews.</p>
+                <h4>Artisan Pass</h4>
+                <p>+100 free Loyalty Beans on signup</p>
                 <button type="button" class="pdm-guest-btn-signup" onclick="openAuthModalWithTab('signup')">
                     <i class="fa-solid fa-user-plus"></i> Create Account (Sign Up)
                 </button>
                 <div class="pdm-guest-switch">
-                    <span>Already have an account?</span>
+                    <span>Already a member?</span>
                     <button type="button" class="pdm-link-signin" onclick="openAuthModalWithTab('signin')">
-                        Sign In <i class="fa-solid fa-arrow-right"></i>
+                        Sign In
                     </button>
                 </div>
             </div>
