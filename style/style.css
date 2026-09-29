@@ -3510,7 +3510,7 @@ textarea.form-control {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    width: 225px;
+    width: 245px;
     max-width: calc(100vw - 20px);
     max-height: calc(100vh - 75px);
     overflow-y: auto;
@@ -3784,7 +3784,7 @@ textarea.form-control {
 
 .pdm-guest-btn-signup {
     width: 100%;
-    padding: 0.48rem 0.75rem;
+    padding: 0.52rem 0.65rem;
     border-radius: var(--radius-full);
     background: linear-gradient(135deg, var(--primary) 0%, var(--accent-copper) 100%);
     border: none;
@@ -3794,7 +3794,8 @@ textarea.form-control {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.45rem;
+    white-space: nowrap;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(212, 163, 115, 0.35);
     transition: all 0.2s ease;
