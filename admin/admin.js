@@ -119,6 +119,8 @@ function enterAdminDashboard() {
     loadCoupons();
     loadTables();
     loadReviews();
+    loadPaytmSettings();
+    setupPaytmSettingsForm();
 }
 
 function initAdminSocket() {
@@ -241,6 +243,9 @@ function renderKdsColumn(containerId, orders, nextStatus, nextLabel, btnClass) {
         const isTable = order.orderType === 'DINE_IN';
         const tableBadge = isTable ? `<span class="kds-order-type kds-table-badge"><i class="fa-solid fa-chair"></i> T-${order.tableNumber || '??'}</span>` : `<span class="kds-order-type">Delivery</span>`;
         const timeAgo = formatTimeAgo(order.createdAt);
+        const upiBadge = order.upiTransactionId 
+            ? `<div style="margin-top: 4px; font-size: 0.72rem; color: #00baf2; font-family: monospace; background: rgba(0,186,242,0.12); padding: 2px 7px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-bolt"></i> UTR: ${order.upiTransactionId}</div>` 
+            : '';
 
         return `
             <div class="kds-card">
@@ -248,7 +253,8 @@ function renderKdsColumn(containerId, orders, nextStatus, nextLabel, btnClass) {
                     <span class="kds-order-num">${order.orderNumber}</span>
                     <div>${tableBadge}</div>
                 </div>
-                <div style="font-size: 0.74rem; color: var(--text-muted);">
+                ${upiBadge}
+                <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
                     <i class="fa-regular fa-clock"></i> ${timeAgo}
                 </div>
                 <div class="kds-card-items">
@@ -362,8 +368,16 @@ async function loadAllOrders() {
                     <td><span class="role-pill">${o.orderType || 'DELIVERY'}</span></td>
                     <td>${custInfo}</td>
                     <td>${itemsSummary}</td>
-                    <td style="font-weight: 700; color: #fff;">$${(o.total || 0).toFixed(2)}</td>
-                    <td><span style="color: ${o.paymentStatus === 'PAID' ? '#4ade80' : '#f59e0b'}; font-weight: 600;">${o.paymentStatus}</span></td>
+                    <td style="font-weight: 700; color: #fff;">₹${(o.total || 0).toFixed(2)}</td>
+                    <td>
+                        <span style="color: ${o.paymentStatus === 'PAID' ? '#4ade80' : '#f59e0b'}; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                            ${o.paymentStatus === 'PAID' ? '<i class="fa-solid fa-circle-check"></i> PAID' : '<i class="fa-solid fa-clock"></i> PENDING'}
+                        </span>
+                        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">
+                            ${o.paymentMethod || 'PAYTM_UPI'}
+                            ${o.upiTransactionId ? `<br><strong style="color: #00baf2; font-family: monospace;">UTR: ${o.upiTransactionId}</strong>` : ''}
+                        </div>
+                    </td>
                     <td>
                         <select onchange="advanceOrderStatus('${o._id}', this.value)" class="adm-select" style="padding: 0.25rem 0.5rem; font-size: 0.78rem;">
                             ${['PLACED', 'CONFIRMED', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED'].map(st => `
@@ -653,4 +667,60 @@ function initAdminToggles() {
         });
     }
 }
+
+// --------------------------------------------------------------------------
+// 9. Paytm Payment Configuration
+// --------------------------------------------------------------------------
+async function loadPaytmSettings() {
+    try {
+        const res = await DrinkoAPI.payments.getPaytmConfig();
+        if (res && res.success) {
+            const upiIdInput = document.getElementById('adm-paytm-upi-id');
+            const merchantNameInput = document.getElementById('adm-paytm-merchant-name');
+            const vpaLabel = document.getElementById('adm-active-vpa-label');
+            const qrPreview = document.getElementById('adm-qr-preview-img');
+
+            if (upiIdInput) upiIdInput.value = res.paytmUpiId || '';
+            if (merchantNameInput) merchantNameInput.value = res.paytmMerchantName || '';
+            if (vpaLabel) vpaLabel.textContent = res.paytmUpiId || 'Not configured';
+
+            // Generate preview QR code
+            if (qrPreview && res.paytmUpiId) {
+                const sampleUpi = `upi://pay?pa=${encodeURIComponent(res.paytmUpiId)}&pn=${encodeURIComponent(res.paytmMerchantName || 'Drinko')}&cu=INR`;
+                qrPreview.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(sampleUpi)}`;
+            }
+        }
+    } catch (err) {
+        console.warn('Paytm settings load note:', err.message);
+    }
+}
+
+function setupPaytmSettingsForm() {
+    const form = document.getElementById('paytm-settings-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const paytmUpiId = document.getElementById('adm-paytm-upi-id').value.trim();
+        const paytmMerchantName = document.getElementById('adm-paytm-merchant-name').value.trim();
+
+        if (!paytmUpiId || !paytmUpiId.includes('@')) {
+            showAdminToast('Please enter a valid UPI ID (e.g. yourname@paytm)', 'fa-triangle-exclamation');
+            return;
+        }
+
+        try {
+            const res = await DrinkoAPI.payments.updatePaytmSettings({ paytmUpiId, paytmMerchantName });
+            if (res && res.success) {
+                showAdminToast('Paytm UPI Settings saved successfully!', 'fa-circle-check');
+                loadPaytmSettings();
+            } else {
+                showAdminToast(res.message || 'Failed to save Paytm settings', 'fa-triangle-exclamation');
+            }
+        } catch (err) {
+            showAdminToast(err.message || 'Error updating settings', 'fa-triangle-exclamation');
+        }
+    });
+}
+
 

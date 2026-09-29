@@ -543,7 +543,7 @@ function setupEventListeners() {
         });
     }
 
-    // Checkout Button
+    // Checkout Button - Launches Paytm Real-Money Checkout Modal
     const checkoutBtn = document.getElementById('checkout-btn');
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', () => {
@@ -551,13 +551,7 @@ function setupEventListeners() {
                 showToast('Your cart is empty!', 'fa-triangle-exclamation');
                 return;
             }
-            recordOrderAndAwardBeans();
-            cart = [];
-            discountApplied = false;
-            const discountRow = document.getElementById('discount-row');
-            if (discountRow) discountRow.style.display = 'none';
-            updateCartDisplay();
-            closeCartDrawer();
+            openPaytmCheckoutFlow();
         });
     }
 }
@@ -1413,66 +1407,433 @@ function saveUserPreferences() {
     showToast('Brew preferences updated! ☕', 'fa-circle-check');
 }
 
-async function recordOrderAndAwardBeans() {
+// --------------------------------------------------------------------------
+// 14. Paytm Real-Money Checkout & UPI Flow
+// --------------------------------------------------------------------------
+let currentPendingPaymentOrder = null;
+let lastCompletedOrder = null;
+
+function ensurePaytmModalInDom() {
+    if (document.getElementById('paytm-payment-modal')) return;
+
+    const modalHTML = `
+    <div class="modal-overlay paytm-modal-overlay" id="paytm-payment-modal">
+        <div class="modal-card paytm-payment-card">
+            <button class="modal-close" id="paytm-modal-close" aria-label="Close Payment Modal">&times;</button>
+            
+            <!-- STEP 1: PAYMENT METHOD SELECTION -->
+            <div id="paytm-step-select" class="paytm-flow-step">
+                <div class="paytm-modal-header">
+                    <div class="paytm-brand-tag">
+                        <span class="paytm-blue-badge"><i class="fa-solid fa-mug-hot"></i> Artisan Coffee Checkout</span>
+                    </div>
+                    <h2>Choose Payment Method</h2>
+                    <p>Select how you'd like to pay for your handcrafted brew.</p>
+                </div>
+
+                <div class="paytm-order-summary-box">
+                    <div class="summary-line">
+                        <span>Total Payable:</span>
+                        <strong class="highlight-total" id="paytm-checkout-total">₹0.00</strong>
+                    </div>
+                    <div class="summary-sub" id="paytm-items-count">0 handcrafted items</div>
+                </div>
+
+                <div class="payment-options-grid">
+                    <label class="pay-option-card active" id="opt-label-paytm">
+                        <input type="radio" name="checkout_pay_method" value="PAYTM_UPI" checked>
+                        <div class="opt-content">
+                            <div class="opt-header">
+                                <span class="opt-title"><i class="fa-solid fa-mug-hot" style="color: var(--primary);"></i> UPI / QR Code</span>
+                                <span class="opt-badge"><i class="fa-solid fa-bolt"></i> Instant Coffee Pay</span>
+                            </div>
+                            <p class="opt-desc">Scan dynamic QR code with Paytm, PhonePe, GPay, or any UPI app.</p>
+                        </div>
+                    </label>
+
+                    <label class="pay-option-card" id="opt-label-cod">
+                        <input type="radio" name="checkout_pay_method" value="CASH_ON_DELIVERY">
+                        <div class="opt-content">
+                            <div class="opt-header">
+                                <span class="opt-title"><i class="fa-solid fa-money-bill-wave" style="color: #4ade80;"></i> Cash on Delivery</span>
+                                <span class="opt-badge" style="background: rgba(74, 222, 128, 0.2); color: #4ade80;">Pay on Arrival</span>
+                            </div>
+                            <p class="opt-desc">Pay cash when your drinks are delivered to your doorstep or counter.</p>
+                        </div>
+                    </label>
+                </div>
+
+                <button class="paytm-proceed-btn" id="btn-paytm-proceed">
+                    <span id="btn-paytm-proceed-text">Proceed with UPI QR</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- STEP 2: SIMPLE SCAN & PAY QR CODE (COFFEE THEMED) -->
+            <div id="paytm-step-qr" class="paytm-flow-step" style="display: none;">
+                <div class="paytm-modal-header text-center">
+                    <div class="paytm-logo-badge">
+                        <i class="fa-solid fa-mug-hot"></i> <span>Drinko <strong>Coffee Pay</strong></span>
+                    </div>
+                    <h2>Scan QR to Pay</h2>
+                    <p class="order-ref-text">Order <span id="paytm-order-num-display" style="color: #ffcb77; font-weight: 700;">#DRK-1001</span> • Total: <strong id="paytm-qr-amount">₹0.00</strong></p>
+                </div>
+
+                <div class="paytm-qr-wrapper">
+                    <div class="qr-frame">
+                        <img id="paytm-qr-image" src="" alt="Coffee UPI QR Code">
+                        <div class="qr-loading-spinner" id="paytm-qr-loader" style="display: none;">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> Brewing QR...
+                        </div>
+                    </div>
+
+                    <div class="paytm-vpa-strip" style="max-width: 320px; margin: 0 auto 1rem auto;">
+                        <div class="vpa-info">
+                            <span class="label">Payee UPI:</span>
+                            <span class="vpa-value" id="paytm-vpa-display">drinko@paytm</span>
+                        </div>
+                        <button class="btn-copy-vpa" id="btn-copy-vpa" title="Copy UPI ID">
+                            <i class="fa-regular fa-copy"></i> Copy
+                        </button>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.4rem;">
+                        Scan with <strong>Paytm, PhonePe, Google Pay</strong>, or any UPI app
+                    </p>
+
+                    <button class="paytm-proceed-btn" id="btn-confirm-paid">
+                        <span id="btn-confirm-paid-text">I Have Paid • Confirm Order</span> <i class="fa-solid fa-mug-hot"></i>
+                    </button>
+                </div>
+
+                <div class="paytm-back-row" style="margin-top: 1rem;">
+                    <button class="btn-link" id="btn-paytm-back"><i class="fa-solid fa-arrow-left"></i> Change Payment Method</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: ORDER CONFIRMED & PAYMENT SUCCESS -->
+            <div id="paytm-step-success" class="paytm-flow-step" style="display: none;">
+                <div class="paytm-success-card text-center">
+                    <div class="success-icon-bubble">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h2>Payment Verified!</h2>
+                    <p class="success-subtitle">Order confirmed and sent live to the barista kitchen display.</p>
+
+                    <div class="success-details-card">
+                        <div class="detail-row">
+                            <span>Order Number:</span>
+                            <strong id="success-order-num" style="color: #ffcb77; font-family: monospace;">#DRK-1001</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Amount Paid:</span>
+                            <strong id="success-paid-amount" style="color: #4ade80;">₹0.00</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Payment Method:</span>
+                            <span id="success-method-label">Paytm UPI</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Loyalty Beans:</span>
+                            <span style="color: #ffcb77;"><i class="fa-solid fa-fire"></i> +15 Beans Awarded</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.2rem;">
+                        <button class="paytm-proceed-btn" id="btn-download-invoice" style="background: linear-gradient(135deg, #b05b3b, #d4a373); color: #fff; box-shadow: 0 8px 20px rgba(176, 91, 59, 0.35);">
+                            <i class="fa-solid fa-file-invoice"></i> <span>Download Invoice Bill (PDF)</span>
+                        </button>
+
+                        <button class="btn btn-primary btn-done-order" id="btn-success-done" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(212, 163, 115, 0.3); color: #ffcb77;">
+                            <span>Done & Track Order</span> <i class="fa-solid fa-mug-hot"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    setupPaytmModalEvents();
+}
+
+function setupPaytmModalEvents() {
+    const modal = document.getElementById('paytm-payment-modal');
+    const closeBtn = document.getElementById('paytm-modal-close');
+    const proceedBtn = document.getElementById('btn-paytm-proceed');
+    const confirmPaidBtn = document.getElementById('btn-confirm-paid');
+    const copyVpaBtn = document.getElementById('btn-copy-vpa');
+    const backBtn = document.getElementById('btn-paytm-back');
+    const doneBtn = document.getElementById('btn-success-done');
+    const downloadInvoiceBtn = document.getElementById('btn-download-invoice');
+
+    const optPaytm = document.getElementById('opt-label-paytm');
+    const optCod = document.getElementById('opt-label-cod');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closePaytmModal);
+    }
+
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closePaytmModal();
+        });
+    }
+
+    if (downloadInvoiceBtn) {
+        downloadInvoiceBtn.addEventListener('click', () => {
+            if (lastCompletedOrder) {
+                downloadOrderInvoice(lastCompletedOrder);
+            } else {
+                showToast('No completed order invoice available.', 'fa-circle-info');
+            }
+        });
+    }
+
+    if (optPaytm && optCod) {
+        optPaytm.addEventListener('click', () => {
+            optPaytm.classList.add('active');
+            optCod.classList.remove('active');
+            const radio = optPaytm.querySelector('input');
+            if (radio) radio.checked = true;
+            const proceedText = document.getElementById('btn-paytm-proceed-text');
+            if (proceedText) proceedText.textContent = 'Proceed with UPI QR';
+        });
+
+        optCod.addEventListener('click', () => {
+            optCod.classList.add('active');
+            optPaytm.classList.remove('active');
+            const radio = optCod.querySelector('input');
+            if (radio) radio.checked = true;
+            const proceedText = document.getElementById('btn-paytm-proceed-text');
+            if (proceedText) proceedText.textContent = 'Place Order (Cash on Delivery)';
+        });
+    }
+
+    if (copyVpaBtn) {
+        copyVpaBtn.addEventListener('click', () => {
+            const vpa = document.getElementById('paytm-vpa-display').textContent.trim();
+            if (navigator.clipboard && vpa) {
+                navigator.clipboard.writeText(vpa);
+                copyVpaBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                setTimeout(() => {
+                    copyVpaBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+                }, 2000);
+            }
+        });
+    }
+
+    if (proceedBtn) {
+        proceedBtn.addEventListener('click', handleProceedPayment);
+    }
+
+    if (confirmPaidBtn) {
+        confirmPaidBtn.addEventListener('click', handleConfirmPayment);
+    }
+
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            document.getElementById('paytm-step-qr').style.display = 'none';
+            document.getElementById('paytm-step-select').style.display = 'block';
+        });
+    }
+
+    if (doneBtn) {
+        doneBtn.addEventListener('click', () => {
+            closePaytmModal();
+        });
+    }
+}
+
+function openPaytmCheckoutFlow() {
+    if (cart.length === 0) {
+        showToast('Your cart is empty!', 'fa-triangle-exclamation');
+        return;
+    }
+
+    ensurePaytmModalInDom();
+
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const orderItemsSummary = cart.map(i => `${i.name} (${i.size || 'Medium'}) x${i.quantity}`).join(', ');
+    const discount = discountApplied ? (subtotal * 0.2) : 0;
+    const delivery = subtotal > 0 ? 2.50 : 0;
+    const total = Math.max(0, subtotal - discount + delivery);
+    const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+    const totalEl = document.getElementById('paytm-checkout-total');
+    const itemsCountEl = document.getElementById('paytm-items-count');
+
+    if (totalEl) totalEl.textContent = `₹${total.toFixed(2)}`;
+    if (itemsCountEl) itemsCountEl.textContent = `${itemCount} handcrafted beverage${itemCount > 1 ? 's' : ''}`;
+
+    // Reset steps
+    document.getElementById('paytm-step-select').style.display = 'block';
+    document.getElementById('paytm-step-qr').style.display = 'none';
+    document.getElementById('paytm-step-success').style.display = 'none';
+
+    // Show modal
+    const modal = document.getElementById('paytm-payment-modal');
+    if (modal) modal.classList.add('active');
+    closeCartDrawer();
+}
+
+function closePaytmModal() {
+    const modal = document.getElementById('paytm-payment-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function handleProceedPayment() {
+    const selectedMethod = document.querySelector('input[name="checkout_pay_method"]:checked')?.value || 'PAYTM_UPI';
+    const proceedBtn = document.getElementById('btn-paytm-proceed');
+    const originalText = proceedBtn.innerHTML;
+
+    proceedBtn.disabled = true;
+    proceedBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Initializing...';
+
+    const itemsPayload = cart.map(item => ({
+        product: item.drinkId || item.id,
+        productName: item.name,
+        size: item.size || 'Medium',
+        quantity: item.quantity,
+        customizations: {
+            ice: item.ice || '100% Ice',
+            sweetness: item.sweetness || '100% Sweet',
+            toppings: item.toppings || []
+        }
+    }));
 
     try {
-        if (typeof DrinkoAPI !== 'undefined') {
-            const itemsPayload = cart.map(item => ({
-                product: item.drinkId || item.id,
-                productName: item.name,
-                size: item.size || 'Medium',
-                quantity: item.quantity,
-                customizations: {
-                    ice: item.ice || '100% Ice',
-                    sweetness: item.sweetness || '100% Sweet',
-                    toppings: item.toppings || []
-                }
-            }));
-
+        if (selectedMethod === 'CASH_ON_DELIVERY') {
             const res = await DrinkoAPI.orders.create({
                 orderType: 'DELIVERY',
                 items: itemsPayload,
-                paymentMethod: 'MOCK_RAZORPAY',
+                paymentMethod: 'CASH_ON_DELIVERY',
                 couponCode: discountApplied ? 'DRINKO20' : null
             });
 
             if (res && res.data) {
-                const createdOrder = res.data;
-                const newOrder = {
-                    id: createdOrder.orderNumber,
-                    date: 'Just now',
-                    items: orderItemsSummary,
-                    total: createdOrder.total,
-                    status: 'brewing',
-                    beansEarned: 15
-                };
+                finishOrderSuccess(res.data, 'Cash on Delivery');
+            } else {
+                throw new Error('Could not create COD order');
+            }
+        } else {
+            // PAYTM_UPI selected: create order first in PENDING status
+            const res = await DrinkoAPI.orders.create({
+                orderType: 'DELIVERY',
+                items: itemsPayload,
+                paymentMethod: 'PAYTM_UPI',
+                couponCode: discountApplied ? 'DRINKO20' : null
+            });
 
-                if (currentUser) {
-                    if (!currentUser.orders) currentUser.orders = [];
-                    currentUser.orders.unshift(newOrder);
-                    currentUser.beans = (currentUser.beans || 0) + 15;
-                    saveCurrentUser();
-                    updateProfileButtonState();
-                    showToast(`Order #${createdOrder.orderNumber} Placed! +15 Loyalty Beans credited (Balance: ${currentUser.beans}) ☕`, 'fa-circle-check');
-                } else {
-                    showToast(`Order #${createdOrder.orderNumber} Placed Successfully! Preparing your drinks...`, 'fa-circle-check');
-                }
-                return;
+            if (!res || !res.data) {
+                throw new Error('Order creation failed');
+            }
+
+            currentPendingPaymentOrder = res.data;
+
+            // Now initiate Paytm UPI with dynamic QR
+            const payRes = await DrinkoAPI.payments.initiatePaytmUpi(currentPendingPaymentOrder._id);
+
+            if (payRes && payRes.success) {
+                document.getElementById('paytm-order-num-display').textContent = `#${payRes.orderNumber}`;
+                document.getElementById('paytm-qr-amount').textContent = `₹${Number(payRes.amount).toFixed(2)}`;
+                document.getElementById('paytm-vpa-display').textContent = payRes.payeeVpa;
+                document.getElementById('paytm-qr-image').src = payRes.qrCodeDataUrl;
+
+                // Transition to Step 2
+                document.getElementById('paytm-step-select').style.display = 'none';
+                document.getElementById('paytm-step-qr').style.display = 'block';
+            } else {
+                throw new Error(payRes.message || 'Failed to generate Paytm UPI QR');
             }
         }
-    } catch (apiErr) {
-        console.warn('Backend order placement note, falling back:', apiErr.message);
+    } catch (err) {
+        showToast(err.message || 'Payment initiation error', 'fa-triangle-exclamation');
+    } finally {
+        proceedBtn.disabled = false;
+        proceedBtn.innerHTML = originalText;
+    }
+}
+
+async function handleConfirmPayment() {
+    if (!currentPendingPaymentOrder) {
+        showToast('No active order found. Please retry checkout.', 'fa-triangle-exclamation');
+        return;
     }
 
-    // Fallback if network is offline
-    const fallbackId = `DK-${Math.floor(1000 + Math.random() * 9000)}`;
+    const confirmBtn = document.getElementById('btn-confirm-paid');
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Confirming Payment...';
+
+    try {
+        const res = await DrinkoAPI.payments.submitPaytmUtr(currentPendingPaymentOrder._id);
+
+        if (res && res.success) {
+            finishOrderSuccess(res.data || currentPendingPaymentOrder, 'Paytm UPI (Paid)');
+        } else {
+            throw new Error(res.message || 'Payment confirmation failed');
+        }
+    } catch (err) {
+        showToast(err.message || 'Payment confirmation failed', 'fa-triangle-exclamation');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+    }
+}
+
+function finishOrderSuccess(order, paymentMethodLabel) {
+    const cartSnapshot = cart.map(i => ({
+        name: i.name,
+        size: i.size || 'Medium',
+        quantity: i.quantity,
+        price: Number(i.price || 0),
+        ice: i.ice || 'Normal Ice',
+        sweetness: i.sweetness || 'Normal Sugar',
+        toppings: Array.isArray(i.toppings) ? [...i.toppings] : []
+    }));
+
+    const orderItemsSummary = cartSnapshot.length > 0 
+        ? cartSnapshot.map(i => `${i.name} (${i.size}) x${i.quantity}`).join(', ')
+        : ((order.items || []).map(i => `${i.productName || 'Brew'} x${i.quantity}`).join(', ') || 'Artisan Coffee Brew');
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = discountApplied ? (subtotal * 0.2) : 0;
+    const delivery = subtotal > 0 ? 2.50 : 0;
+    const finalTotal = Number(order.total || Math.max(0, subtotal - discount + delivery));
+    const orderNum = order.orderNumber || (order._id ? ('DRK-' + String(order._id).slice(-4).toUpperCase()) : ('DRK-' + Math.floor(1000 + Math.random() * 9000)));
+
+    // Save detailed completed order for invoice generation
+    lastCompletedOrder = {
+        ...order,
+        orderNumber: orderNum,
+        paymentMethodLabel: paymentMethodLabel,
+        date: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+        items: cartSnapshot.length > 0 ? cartSnapshot : (order.items || []),
+        subtotal: order.subtotal !== undefined ? Number(order.subtotal) : subtotal,
+        discount: order.discount !== undefined ? Number(order.discount) : discount,
+        deliveryFee: order.deliveryFee !== undefined ? Number(order.deliveryFee) : delivery,
+        total: finalTotal,
+        customerName: (currentUser && currentUser.name) ? currentUser.name : 'Coffee Lover',
+        customerEmail: (currentUser && currentUser.email) ? currentUser.email : 'guest@drinko.cafe',
+        customerPhone: (currentUser && currentUser.phone) ? currentUser.phone : '+91 98765 43210'
+    };
+    window.lastCompletedOrder = lastCompletedOrder;
+
+    // Populate Success Step
+    document.getElementById('success-order-num').textContent = `#${orderNum}`;
+    document.getElementById('success-paid-amount').textContent = `₹${finalTotal.toFixed(2)}`;
+    document.getElementById('success-method-label').textContent = paymentMethodLabel;
+
+    document.getElementById('paytm-step-select').style.display = 'none';
+    document.getElementById('paytm-step-qr').style.display = 'none';
+    document.getElementById('paytm-step-success').style.display = 'block';
+
+    // Record order locally and credit loyalty beans
     const newOrder = {
-        id: fallbackId,
+        id: orderNum,
         date: 'Just now',
         items: orderItemsSummary,
-        total: subtotal > 0 ? (subtotal + (discountApplied ? -subtotal * 0.2 : 0) + 2.50) : 0,
+        total: finalTotal,
         status: 'brewing',
         beansEarned: 15
     };
@@ -1483,11 +1844,571 @@ async function recordOrderAndAwardBeans() {
         currentUser.beans = (currentUser.beans || 0) + 15;
         saveCurrentUser();
         updateProfileButtonState();
-        showToast(`Order Placed! +15 Loyalty Beans credited (Balance: ${currentUser.beans}) ☕`, 'fa-circle-check');
-    } else {
-        showToast('Order Placed Successfully! Preparing your drinks...', 'fa-circle-check');
+    }
+
+    // Reset cart
+    cart = [];
+    discountApplied = false;
+    const discountRow = document.getElementById('discount-row');
+    if (discountRow) discountRow.style.display = 'none';
+    updateCartDisplay();
+
+    showToast(`Order #${orderNum} Verified & Confirmed! ☕`, 'fa-circle-check');
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function generateInvoiceHTML(order) {
+    if (!order) return '';
+
+    const orderNum = order.orderNumber || 'DRK-1001';
+    const dateStr = order.date || new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const customerName = order.customerName || (currentUser && currentUser.name ? currentUser.name : 'Coffee Lover');
+    const customerEmail = order.customerEmail || (currentUser && currentUser.email ? currentUser.email : 'guest@drinko.cafe');
+    const customerPhone = order.customerPhone || (currentUser && currentUser.phone ? currentUser.phone : '+91 98765 43210');
+    const method = order.paymentMethodLabel || (order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery' : 'Paytm UPI');
+    const isPaid = !method.toLowerCase().includes('cash');
+
+    const subtotal = Number(order.subtotal || 0);
+    const discount = Number(order.discount || 0);
+    const delivery = Number(order.deliveryFee !== undefined ? order.deliveryFee : 2.50);
+    const total = Number(order.total || 0);
+    const gst = Number((subtotal * 0.05).toFixed(2));
+
+    const items = Array.isArray(order.items) && order.items.length > 0 
+        ? order.items 
+        : [{ name: 'Handcrafted Specialty Brew', size: 'Medium', quantity: 1, price: total }];
+
+    const itemsRows = items.map((item, idx) => {
+        const name = item.name || item.productName || (item.product && item.product.name) || 'Artisan Drink';
+        const size = item.size || 'Medium';
+        const qty = Number(item.quantity || 1);
+        const price = Number(item.price || (total / (qty || 1)));
+        const lineTotal = (price * qty).toFixed(2);
+        
+        const customParts = [];
+        if (size) customParts.push(`Size: ${size}`);
+        if (item.ice) customParts.push(item.ice);
+        if (item.sweetness) customParts.push(item.sweetness);
+        if (item.toppings && Array.isArray(item.toppings) && item.toppings.length) {
+            customParts.push(`Toppings: ${item.toppings.join(', ')}`);
+        }
+        const notes = customParts.join(' • ');
+
+        return `
+            <tr>
+                <td style="padding: 12px 14px; border-bottom: 1px solid #ebd9c8; text-align: center; color: #8c786d;">${idx + 1}</td>
+                <td style="padding: 12px 14px; border-bottom: 1px solid #ebd9c8;">
+                    <div style="font-weight: 700; color: #23140d; font-size: 0.95rem;">${escapeHtml(name)}</div>
+                    ${notes ? `<div style="font-size: 0.78rem; color: #8c786d; margin-top: 2px;">${escapeHtml(notes)}</div>` : ''}
+                </td>
+                <td style="padding: 12px 14px; border-bottom: 1px solid #ebd9c8; text-align: center; font-weight: 700; color: #23140d;">${qty}</td>
+                <td style="padding: 12px 14px; border-bottom: 1px solid #ebd9c8; text-align: right; color: #5c4436;">₹${price.toFixed(2)}</td>
+                <td style="padding: 12px 14px; border-bottom: 1px solid #ebd9c8; text-align: right; font-weight: 700; color: #b05b3b;">₹${lineTotal}</td>
+            </tr>
+        `;
+    }).join('');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drinko Invoice #${orderNum}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #23140d;
+            background-image: radial-gradient(circle at 50% 0%, #361f14 0%, #170d08 100%);
+            color: #23140d;
+            padding: 30px 15px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            min-height: 100vh;
+        }
+        .action-toolbar {
+            max-width: 820px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2e1a11;
+            color: #fffdfa;
+            padding: 14px 22px;
+            border-radius: 14px;
+            border: 1px solid rgba(212, 163, 115, 0.25);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .action-btn {
+            background: linear-gradient(135deg, #b05b3b, #d4a373);
+            color: #ffffff;
+            border: none;
+            padding: 9px 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(176, 91, 59, 0.35);
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(176, 91, 59, 0.5);
+        }
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffcb77;
+            border: 1px solid rgba(255, 203, 119, 0.3);
+            box-shadow: none;
+        }
+        .action-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+        .invoice-card {
+            max-width: 820px;
+            margin: 0 auto;
+            background: #fffdfa;
+            border: 2px solid #ecdac9;
+            border-radius: 18px;
+            padding: 44px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px dashed #ebd9c8;
+            padding-bottom: 24px;
+            margin-bottom: 26px;
+        }
+        .brand-logo-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .brand-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #b05b3b, #23140d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fffdfa;
+            font-size: 1.7rem;
+            box-shadow: 0 6px 16px rgba(176, 91, 59, 0.35);
+        }
+        .brand-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: #23140d;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+        .brand-tagline {
+            font-size: 0.8rem;
+            color: #8c786d;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .invoice-title-badge {
+            text-align: right;
+        }
+        .inv-badge {
+            display: inline-block;
+            background: #fbf5ef;
+            border: 1px solid #ebd9c8;
+            color: #b05b3b;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 5px 14px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .inv-number {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #23140d;
+            font-family: monospace;
+        }
+        .inv-date {
+            font-size: 0.85rem;
+            color: #8c786d;
+            margin-top: 4px;
+        }
+        .two-col-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 28px;
+            background: #faf4ed;
+            padding: 22px;
+            border-radius: 14px;
+            border: 1px solid #ebd9c8;
+        }
+        .detail-block h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8c786d;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+        .detail-block p {
+            font-size: 0.92rem;
+            line-height: 1.5;
+            color: #23140d;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 14px;
+            margin-top: 8px;
+        }
+        .status-pill.paid {
+            background: #e8f7ee;
+            color: #1e7e34;
+            border: 1px solid #b7e4c7;
+        }
+        .status-pill.pending {
+            background: #fff8e6;
+            color: #b7791f;
+            border: 1px solid #f6e05e;
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+        .invoice-table th {
+            background: #23140d;
+            color: #fffdfa;
+            padding: 13px 14px;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+        .invoice-table th:first-child { border-radius: 10px 0 0 0; }
+        .invoice-table th:last-child { border-radius: 0 10px 0 0; }
+        .totals-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 28px;
+        }
+        .totals-table {
+            width: 360px;
+            border-collapse: collapse;
+        }
+        .totals-table td {
+            padding: 8px 12px;
+            font-size: 0.92rem;
+        }
+        .totals-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+            color: #23140d;
+        }
+        .totals-table tr.grand-total {
+            border-top: 2px solid #23140d;
+            border-bottom: 2px solid #23140d;
+        }
+        .totals-table tr.grand-total td {
+            padding: 12px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #b05b3b;
+        }
+        .loyalty-reward-box {
+            background: linear-gradient(135deg, rgba(212, 163, 115, 0.18), rgba(176, 91, 59, 0.12));
+            border: 1px dashed #d4a373;
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        .loyalty-reward-box .left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: #23140d;
+            font-size: 0.94rem;
+        }
+        .loyalty-beans-count {
+            background: #b05b3b;
+            color: #ffffff;
+            font-weight: 800;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        .invoice-footer {
+            border-top: 1px solid #ebd9c8;
+            padding-top: 22px;
+            text-align: center;
+            font-size: 0.82rem;
+            color: #8c786d;
+            line-height: 1.6;
+        }
+        .footer-thanks {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.2rem;
+            color: #23140d;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        @media print {
+            body { background: #ffffff !important; padding: 0 !important; }
+            .action-toolbar { display: none !important; }
+            .invoice-card { border: none !important; box-shadow: none !important; padding: 20px !important; max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="action-toolbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-mug-hot" style="color: #ffcb77; font-size: 1.3rem;"></i>
+            <span style="font-weight: 600;">Official Tax Invoice Bill • #${orderNum}</span>
+        </div>
+        <div class="action-btns">
+            <button class="action-btn" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Print / Save as PDF
+            </button>
+            <button class="action-btn secondary" onclick="downloadInvoiceBlob()">
+                <i class="fa-solid fa-download"></i> Save HTML Bill
+            </button>
+        </div>
+    </div>
+
+    <div class="invoice-card" id="invoice-printable-area">
+        <header class="invoice-header">
+            <div class="brand-logo-area">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-mug-hot"></i>
+                </div>
+                <div>
+                    <h1 class="brand-title">DRINKO</h1>
+                    <div class="brand-tagline">Artisan Café & Roastery</div>
+                </div>
+            </div>
+            <div class="invoice-title-badge">
+                <span class="inv-badge">Tax Invoice / Receipt</span>
+                <div class="inv-number">#${orderNum}</div>
+                <div class="inv-date"><i class="fa-regular fa-calendar"></i> ${dateStr}</div>
+            </div>
+        </header>
+
+        <section class="two-col-details">
+            <div class="detail-block">
+                <h4>Customer Information</h4>
+                <p><strong>${escapeHtml(customerName)}</strong></p>
+                <p>${escapeHtml(customerEmail)}</p>
+                <p>${escapeHtml(customerPhone)}</p>
+                <div class="status-pill ${isPaid ? 'paid' : 'pending'}">
+                    <i class="fa-solid ${isPaid ? 'fa-circle-check' : 'fa-clock'}"></i>
+                    ${escapeHtml(method)}
+                </div>
+            </div>
+            <div class="detail-block" style="text-align: right;">
+                <h4>Café & Roastery Location</h4>
+                <p><strong>Drinko Flagship Coffee Bar</strong></p>
+                <p>42 Connaught Place, Inner Circle</p>
+                <p>New Delhi, DL 110001 • India</p>
+                <p style="font-size: 0.8rem; color: #8c786d; margin-top: 4px;">GSTIN: 07AABCD1234E1Z8 | FSSAI: 13324001000542</p>
+            </div>
+        </section>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th style="width: 45px; text-align: center;">#</th>
+                    <th style="text-align: left;">Handcrafted Beverage / Item</th>
+                    <th style="width: 70px; text-align: center;">Qty</th>
+                    <th style="width: 100px; text-align: right;">Price</th>
+                    <th style="width: 110px; text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsRows}
+            </tbody>
+        </table>
+
+        <section class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td style="color: #666;">Subtotal:</td>
+                    <td>₹${subtotal.toFixed(2)}</td>
+                </tr>
+                ${discount > 0 ? `
+                <tr>
+                    <td style="color: #2a9d8f;">Coupon Discount (20%):</td>
+                    <td style="color: #2a9d8f;">-₹${discount.toFixed(2)}</td>
+                </tr>
+                ` : ''}
+                <tr>
+                    <td style="color: #666;">Delivery & Barista Packaging:</td>
+                    <td>₹${delivery.toFixed(2)}</td>
+                </tr>
+                <tr>
+                    <td style="color: #666;">Taxes (GST 5% incl.):</td>
+                    <td>₹${gst.toFixed(2)}</td>
+                </tr>
+                <tr class="grand-total">
+                    <td>Grand Total:</td>
+                    <td>₹${total.toFixed(2)}</td>
+                </tr>
+            </table>
+        </section>
+
+        <div class="loyalty-reward-box">
+            <div class="left">
+                <i class="fa-solid fa-fire" style="color: #b05b3b; font-size: 1.2rem;"></i>
+                <span>Drinko Loyalty Beans Earned for this Order</span>
+            </div>
+            <div class="loyalty-beans-count">+15 Beans Awarded</div>
+        </div>
+
+        <footer class="invoice-footer">
+            <div class="footer-thanks">Brewed with Passion & Care ☕</div>
+            <p>Thank you for choosing Drinko! Every cup is crafted with 100% single-origin Arabica beans roasted in-house.</p>
+            <p style="margin-top: 6px; font-size: 0.75rem;">Support: hello@drinko.cafe • Phone: +91 98765 43210 • Website: www.drinko.cafe</p>
+            <p style="margin-top: 4px; font-size: 0.72rem; color: #999;">This is a computer-generated tax invoice. No signature required.</p>
+        </footer>
+    </div>
+
+    <script>
+        function downloadInvoiceBlob() {
+            const htmlContent = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Drinko_Invoice_${orderNum}.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>`;
+}
+
+function downloadOrderInvoice(order) {
+    if (!order) {
+        showToast('No order information found to generate invoice.', 'fa-triangle-exclamation');
+        return;
+    }
+
+    try {
+        const invoiceHTML = generateInvoiceHTML(order);
+        const orderNum = order.orderNumber || 'DRK-ORDER';
+
+        // 1. Trigger direct file download
+        const blob = new Blob([invoiceHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Drinko_Invoice_${orderNum}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // 2. Open printable view in new window and auto-trigger PDF print dialog
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(invoiceHTML);
+            printWindow.document.close();
+            // Automatically prompt print dialog after content loads
+            printWindow.onload = () => {
+                setTimeout(() => {
+                    try {
+                        printWindow.print();
+                    } catch (e) {}
+                }, 400);
+            };
+        }
+
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast(`Invoice #${orderNum} downloaded! Print dialog opened. ☕`, 'fa-file-invoice');
+    } catch (err) {
+        console.error('Invoice generation error:', err);
+        showToast('Could not generate invoice. Please try again.', 'fa-triangle-exclamation');
     }
 }
+
+window.downloadOrderInvoice = downloadOrderInvoice;
+window.generateInvoiceHTML = generateInvoiceHTML;
+window.downloadInvoiceByOrderId = function(orderId) {
+    if (lastCompletedOrder && lastCompletedOrder.orderNumber === orderId) {
+        downloadOrderInvoice(lastCompletedOrder);
+        return;
+    }
+    if (currentUser && currentUser.orders) {
+        const found = currentUser.orders.find(o => o.id === orderId);
+        if (found) {
+            const tot = typeof found.total === 'number' ? found.total : (parseFloat(found.total) || 12.00);
+            downloadOrderInvoice({
+                orderNumber: found.id,
+                date: found.date || 'Recent Order',
+                total: tot,
+                subtotal: Math.max(0, tot - 2.50),
+                deliveryFee: 2.50,
+                discount: 0,
+                paymentMethodLabel: 'Drinko Artisan Pay',
+                items: [{ name: found.items || 'Handcrafted Brew', quantity: 1, price: Math.max(0, tot - 2.50) }],
+                customerName: currentUser.name,
+                customerEmail: currentUser.email,
+                customerPhone: currentUser.phone
+            });
+            return;
+        }
+    }
+    downloadOrderInvoice({
+        orderNumber: orderId,
+        date: new Date().toLocaleDateString('en-IN'),
+        total: 10.00,
+        subtotal: 7.50,
+        deliveryFee: 2.50,
+        paymentMethodLabel: 'Drinko Artisan Pay',
+        items: [{ name: 'Handcrafted Coffee Order', quantity: 1, price: 7.50 }]
+    });
+};
 
 async function handleSignInSubmit(e) {
     e.preventDefault();

@@ -95,12 +95,23 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['RAZORPAY', 'DEV_MOCK', 'MOCK_RAZORPAY', 'CASH_ON_DELIVERY', 'TABLE_PAY'],
-    default: 'DEV_MOCK'
+    enum: ['RAZORPAY', 'DEV_MOCK', 'MOCK_RAZORPAY', 'CASH_ON_DELIVERY', 'TABLE_PAY', 'PAYTM_UPI', 'PAYTM', 'UPI'],
+    default: 'PAYTM_UPI'
   },
   paymentId: {
     type: String,
     default: ''
+  },
+  upiTransactionId: {
+    type: String,
+    default: ''
+  },
+  upiPayerVpa: {
+    type: String,
+    default: ''
+  },
+  paymentTimestamp: {
+    type: Date
   },
   razorpayOrderId: {
     type: String,

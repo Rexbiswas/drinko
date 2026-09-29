@@ -1,0 +1,2 @@
+Admin: admin@drinko.com / adminpassword123
+Kitchen: kitchen@drinko.com / staffpassword123

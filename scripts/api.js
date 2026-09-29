@@ -257,6 +257,22 @@ const DrinkoAPI = {
   // Payments API
   // ------------------------------------------------------------------------
   payments: {
+    getPaytmConfig() {
+      return DrinkoAPI.get('/payment/paytm-config');
+    },
+
+    initiatePaytmUpi(orderId) {
+      return DrinkoAPI.post('/payment/paytm-upi/initiate', { orderId });
+    },
+
+    submitPaytmUtr(orderId, utr, payerVpa = '') {
+      return DrinkoAPI.post('/payment/paytm-upi/submit-utr', { orderId, utr, payerVpa });
+    },
+
+    updatePaytmSettings(settings) {
+      return DrinkoAPI.put('/payment/paytm-settings', settings);
+    },
+
     createOrder(orderId) {
       return DrinkoAPI.post('/payment/create-order', { orderId });
     },

@@ -124,14 +124,25 @@ const createOrder = async (req, res, next) => {
       }
     }
 
-    // 9. Prepare payment order
-    let paymentOrderData = {
-      id: `pay_${Date.now()}`,
-      status: 'PAID',
-      message: 'Payment completed successfully'
-    };
-    order.paymentId = paymentOrderData.id;
-    order.paymentStatus = 'PAID';
+    // 9. Prepare payment status based on payment method
+    let paymentOrderData = null;
+    if (paymentMethod === 'DEV_MOCK' || paymentMethod === 'MOCK_RAZORPAY') {
+      paymentOrderData = {
+        id: `pay_${Date.now()}`,
+        status: 'PAID',
+        message: 'Dev mock payment completed'
+      };
+      order.paymentId = paymentOrderData.id;
+      order.paymentStatus = 'PAID';
+      order.orderStatus = 'CONFIRMED';
+    } else if (paymentMethod === 'CASH_ON_DELIVERY') {
+      order.paymentStatus = 'PENDING';
+      order.orderStatus = 'CONFIRMED';
+    } else {
+      // PAYTM_UPI / online payments: Pending payment by customer
+      order.paymentStatus = 'PENDING';
+      order.orderStatus = 'PLACED';
+    }
     await order.save();
 
     // 10. Real-time Socket.IO notification to staff kitchen display and admin
