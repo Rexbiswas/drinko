@@ -81,15 +81,36 @@ async function loadUserProfile() {
     userProfile = res.data;
 
     // Populate VIP card
-    document.getElementById('profile-name').textContent = userProfile.name || 'Artisan Guest';
+    const userName = userProfile.name || 'Sophia Patel';
+    document.getElementById('profile-name').textContent = userName;
     document.getElementById('profile-email').textContent = userProfile.email || '';
     document.getElementById('profile-phone').textContent = userProfile.phone || 'Phone not set';
     document.getElementById('profile-beans').textContent = userProfile.loyaltyPoints || 0;
     document.getElementById('profile-id').textContent = `ID: DRK-${(userProfile._id || '').slice(-6).toUpperCase()}`;
 
+    // Compute and display luxury monogram initials
+    const getInitials = (str) => {
+        if (!str) return 'SP';
+        const parts = str.trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
+    const initialsEl = document.getElementById('user-avatar-initials');
+    if (initialsEl) initialsEl.textContent = getInitials(userName);
+
+    const avatarEl = document.getElementById('user-avatar-img');
+    const monogramEl = document.getElementById('user-avatar-monogram');
+
     if (userProfile.profile && userProfile.profile.avatar) {
-        const avatarEl = document.getElementById('user-avatar-img');
-        avatarEl.src = userProfile.profile.avatar;
+        if (avatarEl) {
+            avatarEl.src = userProfile.profile.avatar;
+            avatarEl.style.display = 'block';
+        }
+        if (monogramEl) monogramEl.style.display = 'none';
+    } else {
+        if (avatarEl) avatarEl.style.display = 'none';
+        if (monogramEl) monogramEl.style.display = 'flex';
     }
 
     // Set Brew Preferences UI
@@ -392,7 +413,15 @@ function setupEventListeners() {
             try {
                 showToast('Uploading profile image...', 'fa-spinner fa-spin');
                 const res = await DrinkoAPI.profile.uploadAvatar(formData);
-                document.getElementById('user-avatar-img').src = res.data.avatar;
+                const avatarEl = document.getElementById('user-avatar-img');
+                const monogramEl = document.getElementById('user-avatar-monogram');
+                if (res && res.data && res.data.avatar) {
+                    if (avatarEl) {
+                        avatarEl.src = res.data.avatar;
+                        avatarEl.style.display = 'block';
+                    }
+                    if (monogramEl) monogramEl.style.display = 'none';
+                }
                 showToast('Avatar updated successfully!', 'fa-circle-check');
             } catch (err) {
                 showToast(err.message || 'Avatar upload failed', 'fa-triangle-exclamation');

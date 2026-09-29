@@ -1157,7 +1157,11 @@ function setupReviewsPage() {
         reviewsGrid.innerHTML = filtered.map(r => `
             <div class="review-card glass-card">
                 <div class="review-header">
-                    <img src="${r.image}" alt="${r.name}" loading="lazy">
+                    <div class="review-avatar-monogram">${(function(n){
+                        if (!n) return 'VIP';
+                        const p = n.trim().split(/\s+/).filter(Boolean);
+                        return (p.length === 1 ? p[0].slice(0, 2) : p[0][0] + p[p.length - 1][0]).toUpperCase();
+                    })(r.name)}</div>
                     <div>
                         <h4>${r.name} <span class="verified-badge"><i class="fa-solid fa-circle-check"></i> Verified</span></h4>
                         <div class="stars">
