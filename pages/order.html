@@ -52,7 +52,6 @@
                     <a href="menu.html" class="nav-link">Menu</a>
                     <a href="delivery.html" class="nav-link">Delivery</a>
                     <a href="reviews.html" class="nav-link">Reviews</a>
-                    <a href="profile.html" class="nav-link">Profile</a>
                 </div>
 
                 <div class="nav-actions">
@@ -62,9 +61,12 @@
                             <span class="badge" id="fav-count">0</span>
                         </button>
                         
-                        <button class="icon-btn profile-btn" id="profile-btn" aria-label="User Profile">
-                            <i class="fa-regular fa-user"></i>
-                        </button>
+                        <div class="profile-dropdown-wrapper" id="profile-dropdown-wrapper">
+                            <button class="icon-btn profile-btn" id="profile-btn" aria-label="User Profile Dashboard">
+                                <i class="fa-regular fa-user"></i>
+                            </button>
+                            <div class="profile-dropdown-menu" id="profile-dropdown-menu"></div>
+                        </div>
 
                         <button class="icon-btn cart-btn" id="cart-toggle-btn" aria-label="Shopping Cart">
                             <i class="fa-solid fa-cart-shopping"></i>

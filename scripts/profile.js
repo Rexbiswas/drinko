@@ -581,4 +581,137 @@ function setupEventListeners() {
             }
         });
     }
+
+    setupProfileDropdown();
 }
+
+function setupProfileDropdown() {
+    const profileBtn = document.getElementById('profile-btn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleProfileDropdown();
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const wrapper = document.getElementById('profile-dropdown-wrapper');
+        const menu = document.getElementById('profile-dropdown-menu');
+        if (menu && menu.classList.contains('active')) {
+            if (!wrapper || !wrapper.contains(e.target)) {
+                closeProfileDropdown();
+            }
+        }
+    });
+}
+
+function toggleProfileDropdown() {
+    const menu = document.getElementById('profile-dropdown-menu');
+    if (!menu) return;
+    if (menu.classList.contains('active')) {
+        closeProfileDropdown();
+    } else {
+        openProfileDropdown();
+    }
+}
+
+function openProfileDropdown() {
+    renderProfileDropdown();
+    const menu = document.getElementById('profile-dropdown-menu');
+    if (menu) menu.classList.add('active');
+}
+
+function closeProfileDropdown() {
+    const menu = document.getElementById('profile-dropdown-menu');
+    if (menu) menu.classList.remove('active');
+}
+
+function renderProfileDropdown() {
+    const menu = document.getElementById('profile-dropdown-menu');
+    if (!menu) return;
+
+    const u = userProfile || {
+        name: 'Sophia Patel',
+        email: 'sophia.patel@artisan.drinko.com',
+        loyaltyPoints: 120,
+        role: 'customer'
+    };
+
+    const getInitials = (str) => {
+        if (!str) return 'SP';
+        const parts = str.trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
+    menu.innerHTML = `
+        <div class="pdm-header">
+            <div class="pdm-avatar-monogram">${getInitials(u.name)}</div>
+            <div class="pdm-user-meta">
+                <h4 class="pdm-name">${u.name}</h4>
+                <span class="pdm-email">${u.email || ''}</span>
+                <div class="pdm-tier-badge">
+                    <i class="fa-solid fa-crown"></i> Gold Connoisseur
+                </div>
+            </div>
+        </div>
+
+        <div class="pdm-beans-card">
+            <div class="pdm-beans-header">
+                <span><i class="fa-solid fa-mug-hot" style="color: #f59e0b;"></i> Loyalty Beans</span>
+                <strong>${u.loyaltyPoints || 0} / 200</strong>
+            </div>
+            <div class="pdm-beans-bar">
+                <div class="pdm-beans-bar-fill" style="width: ${Math.min(100, Math.round(((u.loyaltyPoints || 0) / 200) * 100))}%;"></div>
+            </div>
+            <div class="pdm-beans-hint">
+                <i class="fa-solid fa-sparkles"></i>
+                <span>${(u.loyaltyPoints || 0) >= 200 ? 'Free Drink reward ready! 🎉' : `${Math.max(0, 200 - (u.loyaltyPoints || 0))} beans to next free drink`}</span>
+            </div>
+        </div>
+
+        <div class="pdm-nav-list" style="margin-top: 0.8rem;">
+            <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); document.querySelector('.profile-nav-item[data-tab=\\'tab-orders\\']')?.click();">
+                <div class="pdm-nav-icon"><i class="fa-solid fa-receipt"></i></div>
+                <div class="pdm-nav-text">
+                    <strong>My Orders & Tracking</strong>
+                    <small>View past coffee deliveries</small>
+                </div>
+                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+            </button>
+            <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); document.querySelector('.profile-nav-item[data-tab=\\'tab-preferences\\']')?.click();">
+                <div class="pdm-nav-icon"><i class="fa-solid fa-sliders"></i></div>
+                <div class="pdm-nav-text">
+                    <strong>Brew Preferences</strong>
+                    <small>Customize roast, milk & sweetness</small>
+                </div>
+                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+            </button>
+            <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); document.querySelector('.profile-nav-item[data-tab=\\'tab-addresses\\']')?.click();">
+                <div class="pdm-nav-icon"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="pdm-nav-text">
+                    <strong>Saved Delivery Addresses</strong>
+                    <small>Manage home & office drop-offs</small>
+                </div>
+                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+            </button>
+            <a href="menu.html" class="pdm-nav-item" onclick="closeProfileDropdown()">
+                <div class="pdm-nav-icon"><i class="fa-solid fa-compass"></i></div>
+                <div class="pdm-nav-text">
+                    <strong>Explore Drinko Menu</strong>
+                    <small>Artisan coffee, teas & blends</small>
+                </div>
+                <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+            </a>
+        </div>
+
+        <div class="pdm-footer">
+            <button type="button" class="pdm-logout-btn" onclick="document.getElementById('btn-profile-logout')?.click()">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+            </button>
+        </div>
+    `;
+}
+
+window.toggleProfileDropdown = toggleProfileDropdown;
+window.closeProfileDropdown = closeProfileDropdown;

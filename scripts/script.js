@@ -467,14 +467,26 @@ function setupEventListeners() {
         link.addEventListener('click', closeNavDrawer);
     });
 
-    // Profile Button Action -> Open Next-Level Profile Dashboard
+    // Profile Button Action -> Open Next-Level Profile Dashboard Dropdown
     const profileBtn = document.getElementById('profile-btn');
     if (profileBtn) {
-        profileBtn.addEventListener('click', () => {
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             closeNavDrawer();
-            openProfileModal();
+            toggleProfileDropdown();
         });
     }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+        const wrapper = document.getElementById('profile-dropdown-wrapper');
+        const menu = document.getElementById('profile-dropdown-menu');
+        if (menu && menu.classList.contains('active')) {
+            if (!wrapper || !wrapper.contains(e.target)) {
+                closeProfileDropdown();
+            }
+        }
+    });
 
     // Category filter pills
     if (categoryPills) {
@@ -1250,7 +1262,7 @@ const STORAGE_KEY_USER = 'drinko_current_user';
 const STORAGE_KEY_USERS = 'drinko_users_db';
 
 let currentUser = null;
-let activeAuthTab = 'signin';
+let activeAuthTab = 'signup'; // Default directly to Sign Up first as requested
 let activeDashboardSubtab = 'orders';
 
 async function initAuthAndProfile() {
@@ -1298,19 +1310,214 @@ async function initAuthAndProfile() {
     setupProfileModalListeners();
 }
 
+function ensureProfileDropdownContainer() {
+    let menu = document.getElementById('profile-dropdown-menu');
+    if (!menu) {
+        const profileBtn = document.getElementById('profile-btn');
+        if (profileBtn) {
+            let wrapper = document.getElementById('profile-dropdown-wrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('div');
+                wrapper.className = 'profile-dropdown-wrapper';
+                wrapper.id = 'profile-dropdown-wrapper';
+                profileBtn.parentNode.insertBefore(wrapper, profileBtn);
+                wrapper.appendChild(profileBtn);
+            }
+            menu = document.createElement('div');
+            menu.className = 'profile-dropdown-menu';
+            menu.id = 'profile-dropdown-menu';
+            wrapper.appendChild(menu);
+        }
+    }
+    return menu;
+}
+
+function toggleProfileDropdown() {
+    const menu = ensureProfileDropdownContainer();
+    if (!menu) return;
+    if (menu.classList.contains('active')) {
+        closeProfileDropdown();
+    } else {
+        openProfileDropdown();
+    }
+}
+
+function openProfileDropdown() {
+    const menu = ensureProfileDropdownContainer();
+    if (!menu) return;
+    renderProfileDropdown();
+    menu.classList.add('active');
+}
+
+function closeProfileDropdown() {
+    const menu = document.getElementById('profile-dropdown-menu');
+    if (menu) menu.classList.remove('active');
+}
+
+function openAuthModalWithTab(tab) {
+    closeProfileDropdown();
+    activeAuthTab = tab || 'signup';
+    openProfileModal();
+}
+
+function openProfileOrdersModal() {
+    closeProfileDropdown();
+    activeDashboardSubtab = 'orders';
+    openProfileModal();
+}
+
+function openProfilePreferencesModal() {
+    closeProfileDropdown();
+    activeDashboardSubtab = 'preferences';
+    openProfileModal();
+}
+
+function renderProfileDropdown() {
+    const menu = ensureProfileDropdownContainer();
+    if (!menu) return;
+
+    const isSubpage = window.location.pathname.includes('/pages/') || window.location.pathname.includes('\\pages\\');
+    const profileHref = isSubpage ? 'profile.html' : 'pages/profile.html';
+    const adminHref = isSubpage ? '../admin/index.html' : 'admin/index.html';
+
+    if (currentUser) {
+        menu.innerHTML = `
+            <div class="pdm-header">
+                <div class="pdm-avatar-monogram">${getInitials(currentUser.name)}</div>
+                <div class="pdm-user-meta">
+                    <h4 class="pdm-name">${currentUser.name}</h4>
+                    <span class="pdm-email">${currentUser.email}</span>
+                    <div class="pdm-tier-badge">
+                        <i class="fa-solid fa-crown"></i> ${currentUser.tier || 'Gold Connoisseur'}
+                    </div>
+                </div>
+            </div>
+
+            <div class="pdm-beans-card">
+                <div class="pdm-beans-header">
+                    <span><i class="fa-solid fa-mug-hot" style="color: #f59e0b;"></i> Loyalty Beans</span>
+                    <strong>${currentUser.beans || 0} / 200</strong>
+                </div>
+                <div class="pdm-beans-bar">
+                    <div class="pdm-beans-bar-fill" style="width: ${Math.min(100, Math.round(((currentUser.beans || 0) / 200) * 100))}%;"></div>
+                </div>
+                <div class="pdm-beans-hint">
+                    <i class="fa-solid fa-sparkles"></i>
+                    <span>${currentUser.beans >= 200 ? 'Free Drink reward ready! 🎉' : `${Math.max(0, 200 - (currentUser.beans || 0))} beans to next free drink`}</span>
+                </div>
+            </div>
+
+            <div class="pdm-stats-grid">
+                <div class="pdm-stat">
+                    <span class="pdm-stat-num">${(currentUser.orders && currentUser.orders.length) || 0}</span>
+                    <span class="pdm-stat-label">Orders</span>
+                </div>
+                <div class="pdm-stat">
+                    <span class="pdm-stat-num" style="color: #ffcb77;">${currentUser.beans || 0}</span>
+                    <span class="pdm-stat-label">Beans</span>
+                </div>
+                <div class="pdm-stat">
+                    <span class="pdm-stat-num" style="color: #4ade80;">10%</span>
+                    <span class="pdm-stat-label">VIP Off</span>
+                </div>
+            </div>
+
+            <div class="pdm-nav-list">
+                <a href="${profileHref}" class="pdm-nav-item" onclick="closeProfileDropdown()">
+                    <div class="pdm-nav-icon"><i class="fa-solid fa-id-badge"></i></div>
+                    <div class="pdm-nav-text">
+                        <strong>VIP Lounge & Profile</strong>
+                        <small>Manage tier, cards & addresses</small>
+                    </div>
+                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                </a>
+                <button type="button" class="pdm-nav-item" onclick="openProfileOrdersModal()">
+                    <div class="pdm-nav-icon"><i class="fa-solid fa-receipt"></i></div>
+                    <div class="pdm-nav-text">
+                        <strong>Recent Orders & History</strong>
+                        <small>${(currentUser.orders && currentUser.orders.length) || 0} active & past orders</small>
+                    </div>
+                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                </button>
+                <button type="button" class="pdm-nav-item" onclick="openProfilePreferencesModal()">
+                    <div class="pdm-nav-icon"><i class="fa-solid fa-sliders"></i></div>
+                    <div class="pdm-nav-text">
+                        <strong>Brew Preferences</strong>
+                        <small>Milk, roast & sweetness</small>
+                    </div>
+                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                </button>
+                <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); openFavDrawer();">
+                    <div class="pdm-nav-icon"><i class="fa-regular fa-heart"></i></div>
+                    <div class="pdm-nav-text">
+                        <strong>Saved Wishlist</strong>
+                        <small>${typeof favorites !== 'undefined' ? favorites.length : 0} saved beverages</small>
+                    </div>
+                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                </button>
+                <button type="button" class="pdm-nav-item" onclick="closeProfileDropdown(); openCartDrawer();">
+                    <div class="pdm-nav-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+                    <div class="pdm-nav-text">
+                        <strong>Artisan Cart</strong>
+                        <small>${typeof cart !== 'undefined' ? cart.reduce((s,i)=>s+i.quantity,0) : 0} items ready</small>
+                    </div>
+                    <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                </button>
+                ${currentUser.role === 'admin' ? `
+                    <a href="${adminHref}" class="pdm-nav-item" onclick="closeProfileDropdown()">
+                        <div class="pdm-nav-icon admin-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div class="pdm-nav-text">
+                            <strong style="color: #ffcb77;">Admin Dashboard</strong>
+                            <small>Store management & inventory</small>
+                        </div>
+                        <i class="fa-solid fa-chevron-right pdm-nav-chevron"></i>
+                    </a>
+                ` : ''}
+            </div>
+
+            <div class="pdm-footer">
+                <button type="button" class="pdm-logout-btn" onclick="handleSignOut()">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                </button>
+            </div>
+        `;
+    } else {
+        menu.innerHTML = `
+            <div class="pdm-guest-card">
+                <div class="pdm-guest-badge">
+                    <i class="fa-solid fa-mug-hot"></i>
+                </div>
+                <h4>Artisan Coffee Pass</h4>
+                <p>Unlock VIP perks, earn +100 Loyalty Beans on signup, and customize your handcrafted brews.</p>
+                <button type="button" class="pdm-guest-btn-signup" onclick="openAuthModalWithTab('signup')">
+                    <i class="fa-solid fa-user-plus"></i> Create Account (Sign Up)
+                </button>
+                <div class="pdm-guest-switch">
+                    <span>Already have an account?</span>
+                    <button type="button" class="pdm-link-signin" onclick="openAuthModalWithTab('signin')">
+                        Sign In <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
 function updateProfileButtonState() {
     const profileBtn = document.getElementById('profile-btn');
     if (!profileBtn) return;
 
     if (currentUser) {
         profileBtn.classList.add('logged-in');
-        profileBtn.setAttribute('title', `${currentUser.name} (${currentUser.beans} Beans)`);
-        profileBtn.setAttribute('aria-label', `${currentUser.name}'s Profile`);
+        profileBtn.setAttribute('title', `${currentUser.name} (${currentUser.beans} Beans) - View Dashboard`);
+        profileBtn.setAttribute('aria-label', `${currentUser.name}'s Dashboard`);
     } else {
         profileBtn.classList.remove('logged-in');
-        profileBtn.setAttribute('title', 'Sign In / Sign Up');
-        profileBtn.setAttribute('aria-label', 'User Profile Sign In');
+        profileBtn.setAttribute('title', 'Sign Up / Sign In');
+        profileBtn.setAttribute('aria-label', 'User Profile Sign Up');
     }
+
+    renderProfileDropdown();
 }
 
 function setupProfileModalListeners() {
@@ -2453,7 +2660,13 @@ async function handleSignInSubmit(e) {
             } catch (apiErr) {
                 // If credentials mismatch or user not found, show user-friendly message
                 if (apiErr.message && !apiErr.message.includes('500') && !apiErr.message.includes('failed with status')) {
-                    showToast(apiErr.message, 'fa-triangle-exclamation');
+                    const msg = apiErr.message;
+                    if (msg.toLowerCase().includes('no account') || msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('create an account')) {
+                        showToast('No account found! Please Sign Up first to create your account.', 'fa-triangle-exclamation');
+                        setTimeout(() => switchAuthTab('signup'), 1200);
+                    } else {
+                        showToast(msg, 'fa-triangle-exclamation');
+                    }
                     return;
                 }
                 // Fallback to local session if cloud DB is unreachable or unconfigured
@@ -2560,7 +2773,8 @@ async function handleSignOut() {
             await DrinkoAPI.auth.logout();
         }
     } catch (err) {}
-    activeAuthTab = 'signin';
+    activeAuthTab = 'signup'; // Default to signup for logged out visitors
+    closeProfileDropdown();
     updateProfileButtonState();
     showToast('Signed out successfully. See you soon!', 'fa-arrow-right-from-bracket');
     renderProfileModal();
@@ -2753,57 +2967,18 @@ function renderProfileModal() {
                     <p>Unlock VIP perks, track your brew orders, and earn exclusive Loyalty Beans with every sip.</p>
                 </div>
 
-                <!-- Tab switcher -->
+                <!-- Tab switcher: Create Account (Sign Up) FIRST, then Sign In! -->
                 <div class="auth-nav-tabs">
-                    <button class="auth-tab-btn ${activeAuthTab === 'signin' ? 'active' : ''}" onclick="switchAuthTab('signin')">
-                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
-                    </button>
                     <button class="auth-tab-btn ${activeAuthTab === 'signup' ? 'active' : ''}" onclick="switchAuthTab('signup')">
                         <i class="fa-solid fa-user-plus"></i> Create Account
                     </button>
+                    <button class="auth-tab-btn ${activeAuthTab === 'signin' ? 'active' : ''}" onclick="switchAuthTab('signin')">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
+                    </button>
                 </div>
 
-                <!-- Sign In Form -->
-                ${activeAuthTab === 'signin' ? `
-                    <form class="auth-form" id="profile-signin-form" onsubmit="handleSignInSubmit(event)">
-                        <div class="form-group-custom">
-                            <label>Email Address</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-envelope input-icon"></i>
-                                <input type="email" id="signin-email" placeholder="Enter your email (e.g. name@example.com)" required autocomplete="email">
-                            </div>
-                        </div>
-
-                        <div class="form-group-custom">
-                            <label>Password</label>
-                            <div class="input-wrapper">
-                                <i class="fa-solid fa-lock input-icon"></i>
-                                <input type="password" id="signin-password" placeholder="Enter your password" required autocomplete="current-password">
-                                <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('signin-password', this)" aria-label="Toggle password visibility">
-                                    <i class="fa-regular fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="auth-options-row">
-                            <label class="remember-me">
-                                <input type="checkbox" checked>
-                                <span>Remember my brew pass</span>
-                            </label>
-                            <a href="javascript:void(0)" class="forgot-pw-link" onclick="showToast('Password reset link sent to your email!', 'fa-envelope')">Forgot Password?</a>
-                        </div>
-
-                        <button type="submit" class="btn-auth-submit">
-                            <span>Sign In to Drinko</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
-
-                        <div style="text-align: center; margin-top: 0.8rem; font-size: 0.88rem; color: var(--text-sub);">
-                            New to Drinko? 
-                            <a href="javascript:void(0)" onclick="switchAuthTab('signup')" style="color: var(--primary-light); font-weight: 600; text-decoration: underline;">Create an account here</a>
-                        </div>
-                    </form>
-                ` : `
+                <!-- Form: Sign Up First -->
+                ${activeAuthTab === 'signup' ? `
                     <!-- Sign Up Form -->
                     <form class="auth-form" id="profile-signup-form" onsubmit="handleSignUpSubmit(event)">
                         <div class="form-group-custom">
@@ -2861,6 +3036,46 @@ function renderProfileModal() {
                             <a href="javascript:void(0)" onclick="switchAuthTab('signin')" style="color: var(--primary-light); font-weight: 600; text-decoration: underline;">Sign In here</a>
                         </div>
                     </form>
+                ` : `
+                    <!-- Sign In Form -->
+                    <form class="auth-form" id="profile-signin-form" onsubmit="handleSignInSubmit(event)">
+                        <div class="form-group-custom">
+                            <label>Email Address</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-envelope input-icon"></i>
+                                <input type="email" id="signin-email" placeholder="Enter your email (e.g. name@example.com)" required autocomplete="email">
+                            </div>
+                        </div>
+
+                        <div class="form-group-custom">
+                            <label>Password</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-lock input-icon"></i>
+                                <input type="password" id="signin-password" placeholder="Enter your password" required autocomplete="current-password">
+                                <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('signin-password', this)" aria-label="Toggle password visibility">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="auth-options-row">
+                            <label class="remember-me">
+                                <input type="checkbox" checked>
+                                <span>Remember my brew pass</span>
+                            </label>
+                            <a href="javascript:void(0)" class="forgot-pw-link" onclick="showToast('Password reset link sent to your email!', 'fa-envelope')">Forgot Password?</a>
+                        </div>
+
+                        <button type="submit" class="btn-auth-submit">
+                            <span>Sign In to Drinko</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+
+                        <div style="text-align: center; margin-top: 0.8rem; font-size: 0.88rem; color: var(--text-sub);">
+                            New to Drinko? 
+                            <a href="javascript:void(0)" onclick="switchAuthTab('signup')" style="color: var(--primary-light); font-weight: 600; text-decoration: underline;">Create an account here</a>
+                        </div>
+                    </form>
                 `}
             </div>
         `;
@@ -2879,4 +3094,10 @@ window.saveUserPreferences = saveUserPreferences;
 window.closeProfileModal = closeProfileModal;
 window.openProfileModal = openProfileModal;
 window.scrollToMenuOrNavigate = scrollToMenuOrNavigate;
+window.toggleProfileDropdown = toggleProfileDropdown;
+window.openProfileDropdown = openProfileDropdown;
+window.closeProfileDropdown = closeProfileDropdown;
+window.openAuthModalWithTab = openAuthModalWithTab;
+window.openProfileOrdersModal = openProfileOrdersModal;
+window.openProfilePreferencesModal = openProfilePreferencesModal;
 
