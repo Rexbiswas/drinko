@@ -25,10 +25,20 @@ const {
 } = require('../controllers/profile.controller');
 const { protect } = require('../middleware/auth');
 
-// Setup multer storage for avatar uploads
-const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const os = require('os');
+
+// Setup multer storage for avatar uploads (use OS temp dir on serverless Vercel to avoid read-only errors)
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadDir = isServerless
+  ? path.join(os.tmpdir(), 'drinko_uploads')
+  : path.join(__dirname, '../../uploads');
+
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (dirErr) {
+  console.warn('[Drinko Storage Notice] Using fallback ephemeral directory:', dirErr.message);
 }
 
 const storage = multer.diskStorage({
@@ -37,9 +47,10 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `avatar_${req.user._id}_${Date.now()}${ext}`);
+    cb(null, `avatar_${req.user ? req.user._id : 'guest'}_${Date.now()}${ext}`);
   }
 });
+
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
