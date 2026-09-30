@@ -73,15 +73,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// Non-blocking On-demand Database Connection for Serverless (skips non-DB routes like health & google config)
+// Resilient Database Connection Middleware for Serverless & Long-running Servers
 app.use(async (req, res, next) => {
-  const isExcluded = req.url === '/api' || req.url === '/api/health' || req.url.startsWith('/api/auth/google/config');
+  // Skip non-DB routes like health, static assets, and google auth config
+  const isExcluded = req.url === '/api' || 
+    req.url === '/api/health' || 
+    req.url.startsWith('/api/auth/google/config') ||
+    !req.url.startsWith('/api');
+
   if (!isExcluded) {
     try {
       await connectDB();
     } catch (dbErr) {
-      console.warn('[Drinko DB Connection Notice]', dbErr.message);
+      console.error('[Drinko DB Middleware Error]', dbErr.message);
+      return res.status(503).json({
+        success: false,
+        message: dbErr.message || 'Database connection unavailable',
+        error: 'DATABASE_CONNECTION_ERROR',
+        solution: 'If deploying on Vercel, ensure MongoDB Atlas Network Access has 0.0.0.0/0 (Allow access from anywhere) whitelisted, and MONGODB_URI is configured in Vercel Project Settings > Environment Variables.'
+      });
     }
+
   }
   next();
 });
@@ -130,11 +142,32 @@ app.use('/api/loyalty', require('./routes/loyalty.routes'));
 app.use('/api/tables', require('./routes/table.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 
-// Root API & Health check endpoints
-app.get(['/api', '/api/health'], (req, res) => {
-  res.status(200).json({
-    status: 'online',
+// Root API & Health check endpoints with live DB diagnostics
+app.get(['/api', '/api/health'], async (req, res) => {
+  let dbStatus = 'disconnected';
+  let dbError = null;
+  let dbHost = null;
+
+  try {
+    const conn = await connectDB();
+    dbStatus = conn.readyState === 1 ? 'connected' : 'connecting';
+    dbHost = conn.host;
+  } catch (err) {
+    dbStatus = 'error';
+    dbError = err.message;
+  }
+
+  const isHealthy = dbStatus === 'connected';
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'online' : 'degraded',
     app: 'Drinko Full-Stack Café Platform',
+    database: {
+      status: dbStatus,
+      host: dbHost,
+      error: dbError,
+      hasEnvUri: Boolean(process.env.MONGODB_URI)
+    },
+    serverless: Boolean(process.env.VERCEL),
     timestamp: new Date()
   });
 });
