@@ -38,8 +38,13 @@ if (require.main === module) {
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Real-time Socket.IO
-initSocket(server);
+// Enable trust proxy for Vercel/reverse proxies (accurate client IPs and secure headers)
+app.set('trust proxy', 1);
+
+// Initialize Real-time Socket.IO (only in persistent server environments, not on serverless Vercel)
+if (!process.env.VERCEL) {
+  initSocket(server);
+}
 
 // Security Headers with relaxed CSP to allow CDN fonts, icons, Unsplash images & Socket.IO
 app.use(
@@ -85,8 +90,8 @@ app.use('/api/loyalty', require('./routes/loyalty.routes'));
 app.use('/api/tables', require('./routes/table.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Root API & Health check endpoints
+app.get(['/api', '/api/health'], (req, res) => {
   res.status(200).json({
     status: 'online',
     app: 'Drinko Full-Stack Café Platform',
@@ -115,9 +120,14 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, message: 'API Endpoint Not Found' });
   }
-  // Otherwise serve index.html
-  res.sendFile(path.join(__dirname, '../index.html'));
+  const indexPath = path.join(__dirname, '../index.html');
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  res.status(404).json({ success: false, message: 'Page Not Found' });
 });
+
 
 // Centralized Error Handling Middleware
 app.use(errorHandler);

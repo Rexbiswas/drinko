@@ -12,7 +12,32 @@ const seedData = require('../backend/utils/seed');
 let isSeeded = false;
 
 module.exports = async (req, res) => {
-  // 1. Establish database connection if not connected
+  let requestPath = req.url || '/api';
+
+  try {
+    const parsed = new URL(requestPath, 'http://localhost');
+    const pathParam = parsed.searchParams.get('path');
+    if (pathParam !== null && pathParam !== undefined) {
+      parsed.searchParams.delete('path');
+      const cleanSub = pathParam.startsWith('/') ? pathParam : `/${pathParam}`;
+      const search = parsed.searchParams.toString();
+      requestPath = `/api${cleanSub}${search ? `?${search}` : ''}`;
+    } else if (req.headers && req.headers['x-forwarded-url']) {
+      const fwd = new URL(req.headers['x-forwarded-url'], 'https://drinko.local');
+      requestPath = fwd.pathname + (fwd.search || '');
+    }
+  } catch (err) {
+    // Keep fallback requestPath
+  }
+
+  const [pathname, search] = requestPath.split('?');
+  let normalizedPath = pathname;
+  if (!normalizedPath.startsWith('/api')) {
+    normalizedPath = '/api' + (normalizedPath.startsWith('/') ? normalizedPath : '/' + normalizedPath);
+  }
+  req.url = normalizedPath + (search ? `?${search}` : '');
+
+  // 2. Establish database connection if not connected (non-blocking warning on failure)
   try {
     await connectDB();
     if (!isSeeded) {
@@ -31,24 +56,7 @@ module.exports = async (req, res) => {
     console.warn('[Drinko Vercel DB Notice]', dbErr.message);
   }
 
-  // 2. Extract and normalize incoming URL so Express router always matches /api/*
-  let requestPath = req.url || '/api';
-  if (req.headers && req.headers['x-forwarded-url']) {
-    try {
-      const parsed = new URL(req.headers['x-forwarded-url'], 'https://drinko.local');
-      requestPath = parsed.pathname;
-    } catch (e) {
-      requestPath = req.headers['x-forwarded-url'];
-    }
-  }
-
-  const [pathname, search] = requestPath.split('?');
-  let normalizedPath = pathname;
-  if (!normalizedPath.startsWith('/api')) {
-    normalizedPath = '/api' + (normalizedPath.startsWith('/') ? normalizedPath : '/' + normalizedPath);
-  }
-  req.url = normalizedPath + (search ? `?${search}` : '');
-
   // 3. Delegate to Express app
   return app(req, res);
 };
+

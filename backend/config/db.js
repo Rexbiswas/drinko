@@ -1,9 +1,17 @@
 const mongoose = require('mongoose');
 
+let lastFailedAttempt = 0;
+const RETRY_COOLDOWN_MS = 15000;
+
 const connectDB = async () => {
   // Re-use existing open Mongoose connection if active
   if (mongoose.connection && mongoose.connection.readyState >= 1) {
     return mongoose.connection;
+  }
+
+  // On serverless Vercel, avoid blocking subsequent requests if connection failed recently
+  if (process.env.VERCEL && Date.now() - lastFailedAttempt < RETRY_COOLDOWN_MS) {
+    throw new Error('Database connection temporarily unavailable (cooldown active).');
   }
 
   try {
@@ -58,12 +66,14 @@ const connectDB = async () => {
       }
     }
   } catch (error) {
+    lastFailedAttempt = Date.now();
     console.error('[Drinko DB] Database Connection Notice:', error.message);
     if (!process.env.VERCEL) {
       process.exit(1);
     }
     throw error;
   }
+
 };
 
 module.exports = connectDB;
