@@ -125,6 +125,30 @@ const DrinkoAPI = {
 
     getMe() {
       return DrinkoAPI.get('/auth/me');
+    },
+
+    forgotPassword(email) {
+      return DrinkoAPI.post('/auth/forgot-password', { email });
+    },
+
+    async resetPassword(tokenOrPayload, password, confirmPassword, email) {
+      let body;
+      let endpoint = '/auth/reset-password';
+
+      if (typeof tokenOrPayload === 'object' && tokenOrPayload !== null) {
+        body = tokenOrPayload;
+      } else {
+        body = {
+          code: tokenOrPayload,
+          password: password,
+          confirmPassword: confirmPassword,
+          email: email
+        };
+        endpoint = `/auth/reset-password/${tokenOrPayload}`;
+      }
+
+      const res = await DrinkoAPI.put(endpoint, body);
+      return res;
     }
   },
 

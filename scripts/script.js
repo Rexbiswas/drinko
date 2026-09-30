@@ -1264,8 +1264,27 @@ const STORAGE_KEY_USERS = 'drinko_users_db';
 let currentUser = null;
 let activeAuthTab = 'signup'; // Default directly to Sign Up first as requested
 let activeDashboardSubtab = 'orders';
+let pendingResetToken = null;
+let pendingResetEmail = '';
 
 async function initAuthAndProfile() {
+    // Check if user is opening a password reset link
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const resetTokenParam = urlParams.get('resetToken');
+        const emailParam = urlParams.get('email');
+        if (emailParam) {
+            pendingResetEmail = emailParam;
+        }
+        if (resetTokenParam) {
+            pendingResetToken = resetTokenParam;
+            activeAuthTab = 'reset';
+            setTimeout(() => {
+                openProfileModal();
+            }, 300);
+        }
+    } catch (e) {}
+
     try {
         if (typeof DrinkoAPI !== 'undefined' && DrinkoAPI.getToken()) {
             try {
@@ -2730,6 +2749,134 @@ async function handleSignUpSubmit(e) {
     }
 }
 
+async function handleForgotPasswordSubmit(e) {
+    e.preventDefault();
+    const emailEl = document.getElementById('forgot-email');
+    if (!emailEl) return;
+    const email = emailEl.value.trim();
+
+    if (!email) {
+        showToast('Please enter your email address', 'fa-triangle-exclamation');
+        return;
+    }
+
+    const btn = document.getElementById('forgot-submit-btn');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>Sending code...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
+    }
+
+    try {
+        if (typeof DrinkoAPI !== 'undefined' && DrinkoAPI.auth && DrinkoAPI.auth.forgotPassword) {
+            const res = await DrinkoAPI.auth.forgotPassword(email);
+            pendingResetEmail = email;
+            pendingResetToken = ''; // Leave blank so user enters code manually
+
+            showToast(res.message || `Verification code sent to ${email}!`, 'fa-envelope');
+
+            // Immediately switch to the Create New Password screen (App-like flow!)
+            setTimeout(() => {
+                switchAuthTab('reset');
+            }, 600);
+        } else {
+            pendingResetEmail = email;
+            pendingResetToken = '';
+            showToast('Reset code sent to your email!', 'fa-envelope');
+            setTimeout(() => switchAuthTab('reset'), 600);
+        }
+    } catch (err) {
+        showToast(err.message || 'Failed to send reset link. Please check your email.', 'fa-triangle-exclamation');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+async function handleResetPasswordSubmit(e) {
+    e.preventDefault();
+    const tokenInput = document.getElementById('reset-token-val');
+    const passInput = document.getElementById('reset-password-input');
+    const confirmInput = document.getElementById('reset-confirm-password');
+    const emailInput = document.getElementById('reset-email-val');
+
+    const code = tokenInput ? tokenInput.value.trim() : (pendingResetToken || '');
+    const email = (emailInput && emailInput.value) ? emailInput.value.trim() : (pendingResetEmail || '');
+    const password = passInput ? passInput.value.trim() : '';
+    const confirmPassword = confirmInput ? confirmInput.value.trim() : '';
+
+    if (!code) {
+        showToast('Please enter the 6-digit code sent to your email.', 'fa-triangle-exclamation');
+        return;
+    }
+
+    if (!password || password.length < 6) {
+        showToast('Password must be at least 6 characters long.', 'fa-triangle-exclamation');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showToast('Passwords do not match. Please re-enter.', 'fa-triangle-exclamation');
+        return;
+    }
+
+    const btn = document.getElementById('reset-submit-btn');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>Updating Password...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
+    }
+
+    try {
+        if (typeof DrinkoAPI !== 'undefined' && DrinkoAPI.auth && DrinkoAPI.auth.resetPassword) {
+            await DrinkoAPI.auth.resetPassword({
+                code: code,
+                email: email,
+                password: password,
+                confirmPassword: confirmPassword
+            });
+        }
+
+        const savedEmail = email;
+        pendingResetToken = null;
+        pendingResetEmail = '';
+
+        // Clean query parameter from address bar
+        if (window.history && window.history.replaceState) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+
+        showToast('Password updated successfully! Please sign in with your new password.', 'fa-circle-check');
+
+        // Redirect user to Sign In screen
+        switchAuthTab('signin');
+
+        // Pre-fill user email and focus password input
+        setTimeout(() => {
+            const signinEmail = document.getElementById('signin-email');
+            if (signinEmail && savedEmail) {
+                signinEmail.value = savedEmail;
+            }
+            const signinPass = document.getElementById('signin-password');
+            if (signinPass) {
+                signinPass.value = '';
+                signinPass.focus();
+            }
+        }, 150);
+        return;
+    } catch (err) {
+        showToast(err.message || 'Failed to update password. Code may have expired.', 'fa-triangle-exclamation');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
 async function handleSignOut() {
     currentUser = null;
     try {
@@ -2937,12 +3084,12 @@ function renderProfileModal() {
                     <button class="auth-tab-btn ${activeAuthTab === 'signup' ? 'active' : ''}" onclick="switchAuthTab('signup')">
                         <i class="fa-solid fa-user-plus"></i> Create Account
                     </button>
-                    <button class="auth-tab-btn ${activeAuthTab === 'signin' ? 'active' : ''}" onclick="switchAuthTab('signin')">
+                    <button class="auth-tab-btn ${activeAuthTab === 'signin' || activeAuthTab === 'forgot' ? 'active' : ''}" onclick="switchAuthTab('signin')">
                         <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
                     </button>
                 </div>
 
-                <!-- Form: Sign Up First -->
+                <!-- Auth Forms Based on Active Tab -->
                 ${activeAuthTab === 'signup' ? `
                     <!-- Sign Up Form -->
                     <form class="auth-form" id="profile-signup-form" onsubmit="handleSignUpSubmit(event)">
@@ -3001,6 +3148,86 @@ function renderProfileModal() {
                             <a href="javascript:void(0)" onclick="switchAuthTab('signin')" style="color: var(--primary-light); font-weight: 600; text-decoration: underline;">Sign In here</a>
                         </div>
                     </form>
+                ` : activeAuthTab === 'forgot' ? `
+                    <!-- Forgot Password Form -->
+                    <form class="auth-form" id="profile-forgot-form" onsubmit="handleForgotPasswordSubmit(event)">
+                        <div style="text-align: center; margin-bottom: 1.2rem;">
+                            <i class="fa-solid fa-key" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem; display: inline-block;"></i>
+                            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem;">Forgot Password?</h3>
+                            <p style="font-size: 0.88rem; color: var(--text-sub); line-height: 1.5;">Enter the email address registered with your Drinko account. We'll send you a real-time reset link.</p>
+                        </div>
+
+                        <div class="form-group-custom">
+                            <label>Registered Email Address</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-envelope input-icon"></i>
+                                <input type="email" id="forgot-email" placeholder="name@example.com" required autocomplete="email">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-auth-submit" id="forgot-submit-btn">
+                            <span>Send Password Reset Link</span>
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+
+                        <div style="text-align: center; margin-top: 1rem; font-size: 0.88rem; color: var(--text-sub);">
+                            Remembered your password? 
+                            <a href="javascript:void(0)" onclick="switchAuthTab('signin')" style="color: var(--primary-light); font-weight: 600; text-decoration: underline;">Back to Sign In</a>
+                        </div>
+                    </form>
+                ` : activeAuthTab === 'reset' ? `
+                    <!-- Reset Password Form -->
+                    <form class="auth-form" id="profile-reset-form" onsubmit="handleResetPasswordSubmit(event)">
+                        <div style="text-align: center; margin-bottom: 1.2rem;">
+                            <i class="fa-solid fa-shield-halved" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem; display: inline-block;"></i>
+                            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem;">Set New Password</h3>
+                            <p style="font-size: 0.88rem; color: var(--text-sub); line-height: 1.5;">
+                                ${pendingResetEmail ? `Enter the 6-digit code sent to <strong style="color: var(--primary-light);">${pendingResetEmail}</strong> and your new password.` : 'Enter the code from your email and set your new password.'}
+                            </p>
+                        </div>
+
+                        <input type="hidden" id="reset-email-val" value="${pendingResetEmail || ''}">
+
+                        <div class="form-group-custom">
+                            <label>6-Digit Verification Code</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-key input-icon"></i>
+                                <input type="text" id="reset-token-val" placeholder="Enter 6-digit code" value="${pendingResetToken || ''}" required autocomplete="one-time-code" maxlength="6" inputmode="numeric" style="letter-spacing: 4px; font-weight: 700; font-size: 1.05rem;">
+                            </div>
+                        </div>
+
+                        <div class="form-group-custom">
+                            <label>Create New Password</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-lock input-icon"></i>
+                                <input type="password" id="reset-password-input" placeholder="Create a new password (min 6 characters)" required minlength="6" autocomplete="new-password">
+                                <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('reset-password-input', this)" aria-label="Toggle password visibility">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group-custom">
+                            <label>Confirm New Password</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-check-double input-icon"></i>
+                                <input type="password" id="reset-confirm-password" placeholder="Re-enter your new password" required minlength="6" autocomplete="new-password">
+                                <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('reset-confirm-password', this)" aria-label="Toggle password visibility">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-auth-submit" id="reset-submit-btn">
+                            <span>Reset Password</span>
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+
+                        <div style="text-align: center; margin-top: 1rem; font-size: 0.88rem; color: var(--text-sub);">
+                            Didn't get the code? 
+                            <a href="javascript:void(0)" onclick="switchAuthTab('forgot')" style="color: var(--primary-light); font-weight: 600; text-decoration: underline;">Resend Code</a>
+                        </div>
+                    </form>
                 ` : `
                     <!-- Sign In Form -->
                     <form class="auth-form" id="profile-signin-form" onsubmit="handleSignInSubmit(event)">
@@ -3028,7 +3255,7 @@ function renderProfileModal() {
                                 <input type="checkbox" checked>
                                 <span>Remember my brew pass</span>
                             </label>
-                            <a href="javascript:void(0)" class="forgot-pw-link" onclick="showToast('Password reset link sent to your email!', 'fa-envelope')">Forgot Password?</a>
+                            <a href="javascript:void(0)" class="forgot-pw-link" onclick="switchAuthTab('forgot')">Forgot Password?</a>
                         </div>
 
                         <button type="submit" class="btn-auth-submit">
@@ -3052,6 +3279,8 @@ window.switchAuthTab = switchAuthTab;
 window.switchDashboardSubtab = switchDashboardSubtab;
 window.handleSignInSubmit = handleSignInSubmit;
 window.handleSignUpSubmit = handleSignUpSubmit;
+window.handleForgotPasswordSubmit = handleForgotPasswordSubmit;
+window.handleResetPasswordSubmit = handleResetPasswordSubmit;
 window.handleSignOut = handleSignOut;
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.selectPrefChip = selectPrefChip;

@@ -30,6 +30,14 @@ async function initProfilePage() {
     setupTabSwitching();
     setupEventListeners();
 
+    // Check if user is resetting password via token
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetToken = urlParams.get('resetToken');
+    if (resetToken) {
+        window.location.href = `../index.html?resetToken=${encodeURIComponent(resetToken)}`;
+        return;
+    }
+
     // Check if user is logged in
     const token = DrinkoAPI.getToken();
     if (!token) {
