@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+let cachedPromise = null;
 let lastFailedAttempt = 0;
 const RETRY_COOLDOWN_MS = 15000;
 
@@ -7,6 +8,14 @@ const connectDB = async () => {
   // Re-use existing open Mongoose connection if active
   if (mongoose.connection && mongoose.connection.readyState >= 1) {
     return mongoose.connection;
+  }
+
+  if (cachedPromise) {
+    try {
+      return await cachedPromise;
+    } catch (_) {
+      cachedPromise = null;
+    }
   }
 
   // On serverless Vercel, avoid blocking subsequent requests if connection failed recently
@@ -26,12 +35,14 @@ const connectDB = async () => {
     }
     
     try {
-      const conn = await mongoose.connect(mongoURI, {
-        serverSelectionTimeoutMS: 5000
+      cachedPromise = mongoose.connect(mongoURI, {
+        serverSelectionTimeoutMS: 10000
       });
+      const conn = await cachedPromise;
       console.log(`[Drinko DB] Connected to MongoDB: ${conn.connection.host}`);
       return conn;
     } catch (primaryErr) {
+      cachedPromise = null;
       console.warn(`[Drinko DB] Could not connect to primary MongoDB at ${mongoURI} (${primaryErr.message}).`);
       
       // On Vercel, in-memory MongoDB server cannot run due to serverless read-only restrictions
