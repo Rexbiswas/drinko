@@ -46,6 +46,46 @@ if (!process.env.VERCEL) {
   initSocket(server);
 }
 
+// URL Normalization Middleware for Vercel Rewrites
+app.use((req, res, next) => {
+  try {
+    const urlObj = new URL(req.url, 'http://localhost');
+    const pathParam = urlObj.searchParams.get('path');
+    if (pathParam !== null && pathParam !== undefined) {
+      urlObj.searchParams.delete('path');
+      const cleanSub = pathParam.startsWith('/') ? pathParam : `/${pathParam}`;
+      const search = urlObj.searchParams.toString();
+      req.url = `/api${cleanSub}${search ? `?${search}` : ''}`;
+    } else if (req.headers && req.headers['x-forwarded-url']) {
+      const fwd = new URL(req.headers['x-forwarded-url'], 'https://drinko.local');
+      req.url = fwd.pathname + (fwd.search || '');
+    }
+  } catch (err) {}
+
+  if (!req.url.startsWith('/api') && req.url.startsWith('/')) {
+    // If not starting with /api but accessing an api endpoint name
+    const topSegments = ['auth', 'products', 'categories', 'orders', 'reviews', 'inventory', 'coupons', 'payment', 'loyalty', 'tables', 'admin', 'profile', 'health'];
+    const firstSegment = req.url.split('/')[1]?.split('?')[0];
+    if (topSegments.includes(firstSegment)) {
+      req.url = `/api${req.url}`;
+    }
+  }
+  next();
+});
+
+// Non-blocking On-demand Database Connection for Serverless (skips non-DB routes like health & google config)
+app.use(async (req, res, next) => {
+  const isExcluded = req.url === '/api' || req.url === '/api/health' || req.url.startsWith('/api/auth/google/config');
+  if (!isExcluded) {
+    try {
+      await connectDB();
+    } catch (dbErr) {
+      console.warn('[Drinko DB Connection Notice]', dbErr.message);
+    }
+  }
+  next();
+});
+
 // Security Headers with relaxed CSP to allow CDN fonts, icons, Unsplash images & Socket.IO
 app.use(
   helmet({

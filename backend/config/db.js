@@ -49,7 +49,8 @@ const connectDB = async () => {
           fs.mkdirSync(dataDir, { recursive: true });
         }
         
-        const { MongoMemoryServer } = require('mongodb-memory-server');
+        const memServerModule = 'mongodb-memory-server';
+        const { MongoMemoryServer } = require(memServerModule);
         const mongod = await MongoMemoryServer.create({
           instance: {
             dbPath: dataDir,
