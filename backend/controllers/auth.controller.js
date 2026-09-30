@@ -3,6 +3,7 @@ const LoyaltyTransaction = require('../models/LoyaltyTransaction');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
+const { verifyGoogleIdToken } = require('../services/googleAuth.service');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -370,12 +371,268 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// @desc    Get Google OAuth Public Client ID
+// @route   GET /api/auth/google/config
+// @access  Public
+const getGoogleConfig = (req, res) => {
+  res.status(200).json({
+    success: true,
+    clientId: (process.env.GOOGLE_CLIENT_ID || '').trim()
+  });
+};
+
+// @desc    Authenticate or register user via Google ID Token
+// @route   POST /api/auth/google
+// @access  Public
+const googleAuth = async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google credential token is required.'
+      });
+    }
+
+    let googleData;
+    try {
+      googleData = await verifyGoogleIdToken(credential);
+    } catch (verifyErr) {
+      return res.status(401).json({
+        success: false,
+        message: verifyErr.message || 'We could not verify your Google account credential. Please try again.'
+      });
+    }
+
+    const { sub, email, name, picture } = googleData;
+
+    // Search for existing user with this verified Google stable sub ID
+    let user = await User.findOne({ googleId: sub });
+
+    if (user) {
+      // Existing Google-authenticated user: Log in
+      user.lastLogin = new Date();
+      // If user had no avatar, update from Google profile picture
+      if ((!user.profile || !user.profile.avatar) && picture) {
+        if (!user.profile) user.profile = {};
+        user.profile.avatar = picture;
+      }
+      await user.save({ validateBeforeSave: false });
+
+      const token = generateToken(user._id);
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Google sign-in successful',
+        token,
+        user: {
+          id: user._id,
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          avatar: (user.profile && user.profile.avatar) || picture || '',
+          role: user.role,
+          loyaltyPoints: user.loyaltyPoints || 0,
+          preferences: user.preferences || {}
+        }
+      });
+    }
+
+    // Google sub was not found. Check if an account already exists with this email
+    const existingEmailUser = await User.findOne({ email });
+
+    if (existingEmailUser) {
+      // Email matches an existing account created using email/password or another method.
+      // Do NOT blindly merge accounts! Prompt the user to authenticate before linking.
+      return res.status(409).json({
+        success: false,
+        requiresLinking: true,
+        email: existingEmailUser.email,
+        name: existingEmailUser.name,
+        message: 'An account with this email already exists on Drinko. Please authenticate with your existing password to link your Google account.'
+      });
+    }
+
+    // New Google customer: Create new User document
+    const newUser = await User.create({
+      name: name || 'Artisan Guest',
+      email: email,
+      googleId: sub,
+      authProvider: 'google',
+      profile: {
+        avatar: picture || '',
+        bio: '',
+        gender: ''
+      },
+      role: 'customer',
+      addresses: [],
+      favourites: [],
+      loyaltyPoints: 100, // 100 Welcome Loyalty Beans
+      preferences: {
+        favouriteCategory: 'Coffee',
+        favouriteDrink: 'Hazelnut Cold Brew',
+        preferredSize: 'Medium',
+        preferredMilk: 'Oat Milk (Barista Edition)',
+        preferredSweetness: '50% Sweet'
+      },
+      notifications: {
+        orderUpdates: true,
+        promotions: true,
+        newDrinks: true,
+        loyaltyRewards: true
+      },
+      lastLogin: new Date()
+    });
+
+    // Record welcome bonus loyalty transaction
+    try {
+      await LoyaltyTransaction.create({
+        user: newUser._id,
+        type: 'WELCOME_BONUS',
+        points: 100,
+        balanceAfter: 100,
+        reason: 'Welcome bonus on joining Drinko Artisan Club via Google'
+      });
+    } catch (txErr) {
+      console.warn('[Google Auth] Loyalty transaction note:', txErr.message);
+    }
+
+    const token = generateToken(newUser._id);
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Google sign-in successful',
+      token,
+      user: {
+        id: newUser._id,
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        avatar: (newUser.profile && newUser.profile.avatar) || picture || '',
+        role: newUser.role,
+        loyaltyPoints: newUser.loyaltyPoints || 100,
+        preferences: newUser.preferences || {}
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Securely link Google identity to existing email/password account
+// @route   POST /api/auth/google/link
+// @access  Public
+const linkGoogleAccount = async (req, res, next) => {
+  try {
+    const { credential, password } = req.body;
+
+    if (!credential || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both Google credential and your Drinko password are required to link accounts.'
+      });
+    }
+
+    // Verify Google ID token again server-side
+    let googleData;
+    try {
+      googleData = await verifyGoogleIdToken(credential);
+    } catch (verifyErr) {
+      return res.status(401).json({
+        success: false,
+        message: verifyErr.message || 'Invalid Google credential.'
+      });
+    }
+
+    const { sub, email, picture } = googleData;
+
+    // Check if this googleId is already used by a different account
+    const existingGoogleUser = await User.findOne({ googleId: sub });
+    if (existingGoogleUser && existingGoogleUser.email !== email) {
+      return res.status(400).json({
+        success: false,
+        message: 'This Google account is already connected to another Drinko account.'
+      });
+    }
+
+    // Find the local user by email with password
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No Drinko account found matching this email address.'
+      });
+    }
+
+    // Verify Drinko password
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect password. Account linking requires valid account credentials.'
+      });
+    }
+
+    // Link Google ID and update provider
+    user.googleId = sub;
+    user.authProvider = 'google';
+    if ((!user.profile || !user.profile.avatar) && picture) {
+      if (!user.profile) user.profile = {};
+      user.profile.avatar = picture;
+    }
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    const token = generateToken(user._id);
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Google account linked successfully!',
+      token,
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: (user.profile && user.profile.avatar) || picture || '',
+        role: user.role,
+        loyaltyPoints: user.loyaltyPoints || 0,
+        preferences: user.preferences || {}
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
   getMe,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  getGoogleConfig,
+  googleAuth,
+  linkGoogleAccount
 };
 

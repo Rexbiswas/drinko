@@ -104,6 +104,26 @@ const DrinkoAPI = {
   // Auth API
   // ------------------------------------------------------------------------
   auth: {
+    async getGoogleConfig() {
+      return DrinkoAPI.get('/auth/google/config');
+    },
+
+    async googleLogin(credential) {
+      const res = await DrinkoAPI.post('/auth/google', { credential });
+      if (res && res.token) {
+        DrinkoAPI.setToken(res.token);
+      }
+      return res;
+    },
+
+    async googleLink(credential, password) {
+      const res = await DrinkoAPI.post('/auth/google/link', { credential, password });
+      if (res && res.token) {
+        DrinkoAPI.setToken(res.token);
+      }
+      return res;
+    },
+
     async register(data) {
       const res = await DrinkoAPI.post('/auth/register', data);
       if (res.token) DrinkoAPI.setToken(res.token);

@@ -110,6 +110,13 @@ async function loadUserProfile() {
     const avatarEl = document.getElementById('user-avatar-img');
     const monogramEl = document.getElementById('user-avatar-monogram');
 
+    if (avatarEl) {
+        avatarEl.onerror = () => {
+            avatarEl.style.display = 'none';
+            if (monogramEl) monogramEl.style.display = 'flex';
+        };
+    }
+
     if (userProfile.profile && userProfile.profile.avatar) {
         if (avatarEl) {
             avatarEl.src = userProfile.profile.avatar;

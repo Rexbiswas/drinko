@@ -1,8 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, logout, getMe, forgotPassword, resetPassword } = require('../controllers/auth.controller');
+const { 
+  register, 
+  login, 
+  logout, 
+  getMe, 
+  forgotPassword, 
+  resetPassword,
+  getGoogleConfig,
+  googleAuth,
+  linkGoogleAccount 
+} = require('../controllers/auth.controller');
 const { protect } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
+
+// Google Identity Services endpoints
+router.get('/google/config', getGoogleConfig);
+router.post('/google', authLimiter, googleAuth);
+router.post('/google/link', authLimiter, linkGoogleAccount);
 
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
