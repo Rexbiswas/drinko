@@ -371,13 +371,15 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const DEFAULT_GOOGLE_CLIENT_ID = '951353454086-3b1jcsivpgn5utr4ldi4jlga2nghed9t.apps.googleusercontent.com';
+
 // @desc    Get Google OAuth Public Client ID
 // @route   GET /api/auth/google/config
 // @access  Public
 const getGoogleConfig = (req, res) => {
   res.status(200).json({
     success: true,
-    clientId: (process.env.GOOGLE_CLIENT_ID || '').trim()
+    clientId: (process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim()
   });
 };
 

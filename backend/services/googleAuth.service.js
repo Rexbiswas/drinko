@@ -1,14 +1,17 @@
 const { OAuth2Client } = require('google-auth-library');
 
+const DEFAULT_GOOGLE_CLIENT_ID = '951353454086-3b1jcsivpgn5utr4ldi4jlga2nghed9t.apps.googleusercontent.com';
+
 let client = null;
 
 const getOAuthClient = () => {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientId = (process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
   if (!client || client._clientId !== clientId) {
     client = new OAuth2Client(clientId);
   }
   return client;
 };
+
 
 /**
  * @param {string} idToken - The raw credential returned by Google Identity Services.
@@ -31,17 +34,14 @@ const verifyGoogleIdToken = async (idToken) => {
     };
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientId = (process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
   const oAuthClient = getOAuthClient();
 
   const verifyOptions = {
-    idToken: idToken.trim()
+    idToken: idToken.trim(),
+    audience: clientId
   };
 
-  // If GOOGLE_CLIENT_ID is configured, enforce audience check
-  if (clientId && clientId.trim()) {
-    verifyOptions.audience = clientId.trim();
-  }
 
   const ticket = await oAuthClient.verifyIdToken(verifyOptions);
   const payload = ticket.getPayload();
